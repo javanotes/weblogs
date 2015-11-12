@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	th:style="'background: url(' + @{/webjars/dist/img/maxresdefault.jpg} + '); 
+	background-size: cover;
+    background-repeat: no-repeat;
+    '">
+<head>
+	<meta charset="UTF-8"></meta>
+	<title th:fragment="title">Weblogs | Sign in</title>
+	
+	<style th:replace="common/cssresources"></style>
+	
+	<script th:replace="common/jsresources"></script>
+
+</head>
+<body th:style="'background: url(' + @{/webjars/dist/img/maxresdefault.jpg} + '); 
+	background-size: cover;
+    background-repeat: no-repeat;
+    background-blend-mode: inherit;
+    '">
+	<div th:replace="fragments/signinform :: content">Content</div>
+
+	<script>
+		$(function() {
+			/* $('#input').iCheck({
+				checkboxClass : 'icheckbox_square-blue',
+				radioClass : 'iradio_square-blue',
+				increaseArea : '20%' // optional
+			}); */
+		});
+	</script>
+	
+</body>
+</html>

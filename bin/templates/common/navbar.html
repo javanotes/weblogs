@@ -1,0 +1,45 @@
+<header class="main-header" xmlns:tiles="http://www.thymeleaf.org/tiles" xmlns:th="http://www.thymeleaf.org">
+  <!-- Logo -->
+  <a th:href="@{/home}" class="logo"><b>COX</b> EMT</a>
+  <!-- Header Navbar: style can be found in header.less -->
+  <nav class="navbar navbar-static-top" role="navigation">
+    <!-- Sidebar toggle button-->
+    <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button"> <span class="sr-only">Toggle
+        navigation</span>
+    </a>
+    <!-- Navbar Right Menu -->
+    <div class="navbar-custom-menu">
+      <ul class="nav navbar-nav">
+        <!-- Messages: style can be found in dropdown.less-->
+
+        <!-- Notifications: style can be found in dropdown.less -->
+
+        <!-- Tasks: style can be found in dropdown.less -->
+
+        <!-- User Account: style can be found in dropdown.less -->
+        <li class="dropdown user user-menu"><a href="#" class="dropdown-toggle" data-toggle="dropdown"> <span
+            class="hidden-xs" th:utext="'Welcome, &nbsp; &lt;b&gt;' + ${USER.displayName} + '&lt;/b&gt;'"></span>
+        </a>
+          <ul class="dropdown-menu">
+            <!-- User image -->
+            <li class="user-header"><img th:src="@{/webjars/dist/img/avatar04.png}" class="img-circle"
+              alt="User Image" />
+              <p th:text="${USER.firstName} +' '+ ${USER.lastName} + ' - ' + ${USER.role}">
+                Alexander Pierce - System Admin <small>Member since Nov. 2012</small>
+              </p></li>
+            <!-- Menu Body -->
+
+            <!-- Menu Footer-->
+            <li class="user-footer">
+              <div class="pull-left">
+                <a href="#" class="btn btn-default btn-flat">Profile</a>
+              </div>
+              <div class="pull-right">
+                <a href="#" th:href="@{/logout}" class="btn btn-default btn-flat">Sign out</a>
+              </div>
+            </li>
+          </ul></li>
+      </ul>
+    </div>
+  </nav>
+</header>

@@ -1,0 +1,57 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        
+	}
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.2.5.RELEASE")
+    }
+}
+repositories {
+        mavenCentral()
+        maven { url "http://repo.spring.io/libs-milestone" }
+        maven { url "https://repo.spring.io/milestone" }
+}
+    
+apply plugin: 'eclipse'
+apply plugin: 'spring-boot'
+apply plugin: 'java'
+
+jar {
+  	outputs.upToDateWhen { false }
+   	baseName = 'weblogs'
+    version =  '0.1.0'
+}
+
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+dependencies {
+    compile("org.springframework.boot:spring-boot-starter-web") 
+    compile("org.springframework.boot:spring-boot-starter-security")
+    compile("org.springframework.boot:spring-boot-starter-thymeleaf")
+    compile("org.projectlombok:lombok:1.16.6")
+    compile('org.apache.lucene:lucene-analyzers-common:5.3.1')
+    compile('org.springframework.data:spring-data-cassandra:1.3.0.RELEASE')
+    compile('com.datastax.cassandra:cassandra-driver-core:2.1.8')
+    compile('org.jparsec:jparsec:2.2.1')
+    
+    compile("org.webjars:jquery:2.1.3")
+  	compile("org.webjars:font-awesome:4.3.0")
+  	compile("org.webjars:bootstrap:3.3.2"){
+    	exclude group: 'org.webjars', module: 'jquery'
+  	}
+  	compile("org.jadira.usertype:usertype.core:4.0.0.GA") {
+    	exclude group: '*', module: '*'
+  	}
+  	compile("org.jadira.usertype:usertype.spi:4.0.0.GA") {
+    	exclude group: '*', module: '*'
+  	}
+    testCompile("junit:junit")
+    testCompile("org.springframework.boot:spring-boot-starter-test")
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.3'
+}

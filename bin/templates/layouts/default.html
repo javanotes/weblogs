@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:tiles="http://www.thymeleaf.org/tiles" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8"></meta>
+<meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'></meta>
+<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+<!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+
+<title>EMT</title>
+<style th:replace="common/cssresources"></style>
+<script th:replace="common/jsresources"></script>
+<script>
+	
+</script>
+</head>
+<body class="skin-blue">
+  <div class="wrapper box">
+    <div th:replace="common/navbar"></div>
+
+    <div th:replace="common/menu"></div>
+
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper">
+
+      <!-- Main content -->
+      <section class="content">
+
+        <div class="row">
+          <div class="col-md-12">
+
+            <div th:replace="${view} :: content">Content</div>
+
+          </div>
+          <!-- /.col -->
+        </div>
+        <!-- /.row -->
+
+
+      </section>
+      <!-- /.content -->
+    </div>
+    <!-- /.content-wrapper -->
+
+    <div th:replace="common/footer"></div>
+  </div>
+  <!-- ./wrapper -->
+
+</body>
+</html>

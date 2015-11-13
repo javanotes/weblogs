@@ -36,6 +36,8 @@ import org.springframework.security.util.FieldUtils;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.Assert;
 
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.BatchStatement.Type;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.ericsson.weblogs.domain.LogEvent;
@@ -120,7 +122,6 @@ public class LogEventIngestionDAO extends LogEventDAO {
    */
   public void ingestEntitiesAsync(List<LogEvent> entities) throws DataAccessException
   {
-      
     final DataAccessException dax = new DataAccessException("Async operation had errors");    
     cassandraOperations.insertAsynchronously(entities, new WriteListener<LogEvent>() {
 
@@ -204,6 +205,49 @@ public class LogEventIngestionDAO extends LogEventDAO {
       log.info("Time taken: "+secs+" secs "+(time - TimeUnit.SECONDS.toMillis(secs)) + " ms");
       if(!dax.getExceptions().isEmpty())
         throw dax;
+      
+    } catch (Exception e) {
+      throw new DataAccessException(e);
+    }
+  }
+  /**
+   * This is an insert operation designed for high performance writes. A CQL is used to create a PreparedStatement once, 
+   * then all row values are bound to the single PreparedStatement and executed asynchronously and <b>atomically</b> 
+   * in BATCH, against the Session. <p>
+   * This method will use server generated timeuuid using now() function.
+   * @param entities
+   * @throws DataAccessException
+   */
+  public void ingestAsyncBatch(List<LogEvent> entities) throws DataAccessException
+  {
+      
+    try 
+    {
+      Assert.notNull(entities);
+      Object[] args;
+      List<Object> param;
+      
+      BatchStatement batch = new BatchStatement(Type.LOGGED);
+      long start = System.currentTimeMillis();
+      log.info("=================== ingestAsyncBatch:Starting ingestion batch (logged) ===================");
+      for(LogEvent event : entities)
+      {
+        param = bindParams(event);
+        args = new Object[param.size()];
+                
+        batch.add(cqlIngestStmt.bind(param.toArray(args)));
+        
+        if (log.isDebugEnabled()) {
+          log.debug(">>>>>>>>>> Sending ingestion params => " + param);
+        }
+      }
+      
+      session.executeAsync(batch).getUninterruptibly();
+      
+      long time = System.currentTimeMillis() - start;
+      log.info("=================== ingestAsyncBatch:End ingestion batch (logged) ===================");
+      long secs = TimeUnit.MILLISECONDS.toSeconds(time);
+      log.info("Time taken: "+secs+" secs "+(time - TimeUnit.SECONDS.toMillis(secs)) + " ms");
       
     } catch (Exception e) {
       throw new DataAccessException(e);

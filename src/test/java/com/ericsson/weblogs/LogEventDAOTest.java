@@ -252,6 +252,29 @@ public class LogEventDAOTest {
     }
   }
   
+  @Test
+  public void testInsertLogEventsBatch()
+  {
+        
+    List<LogEvent> requests = new ArrayList<>(batchSize);
+    for(int i=0; i<batchSize; i++)
+    {
+      event = new LogEvent();
+      event.setId(new LogEventKey());
+      event.setLogText("This is some bla blaah bla logging at info level");
+      event.getId().setAppId(appId);
+      event.getId().setBucket(bucket);
+      
+      requests.add(event);
+    }
+    try {
+      iDao.ingestAsyncBatch(requests);
+      
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+  }
+  
   
   
   @Test

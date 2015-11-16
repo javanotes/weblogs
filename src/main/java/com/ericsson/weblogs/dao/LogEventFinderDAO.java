@@ -89,33 +89,20 @@ public class LogEventFinderDAO extends LogEventDAO{
     
   }
   
-  /**
-   * 
-   * @param appId
-   * @param bucket
-   * @return
-   */
-  public List<LogEvent> findByAppIdAndBucket(String appId, String bucket)
+  
+  public List<LogEvent> findByAppId(String appId)
   {
     Select sel = QueryBuilder.select().from(table);
-    sel.where().and(QueryBuilder.eq(pkCols[0], appId))
-    .and(QueryBuilder.eq(pkCols[1], bucket));
+    sel.where(QueryBuilder.eq(pkCols[0], appId));
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
-  /**
-   * 
-   * @param appId
-   * @param bucket
-   * @param token
-   * @return
-   */
-  public List<LogEvent> findByAppIdBucketContains(final String appId, final String bucket, String token)
+   
+  public List<LogEvent> findByAppIdContains(final String appId, String token)
   {
     Select sel = QueryBuilder.select().from(table);
     
     sel.where().and(QueryBuilder.eq(pkCols[0], appId))
-    .and(QueryBuilder.eq(pkCols[1], bucket))
     .and(QueryBuilder.contains(tokenCol, token));
     
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
@@ -125,20 +112,11 @@ public class LogEventFinderDAO extends LogEventDAO{
     
   }
   
-  /**
-   * 
-   * @param appId
-   * @param bucket
-   * @param token
-   * @param fromDate exclusive
-   * @param toDate inclusive
-   * @return
-   */
-  public List<LogEvent> findByAppIdBucketBetweenDatesContains(final String appId, final String bucket, String token, final Date fromDate, final Date toDate)
+    
+  public List<LogEvent> findByAppIdBetweenDatesContains(final String appId, String token, final Date fromDate, final Date toDate)
   {
     Select sel = QueryBuilder.select().from(table);
     sel.where().and(QueryBuilder.eq(pkCols[0], appId))
-    .and(QueryBuilder.eq(pkCols[1], bucket))
     .and(QueryBuilder.gt(timeuuidCol, UUIDs.endOf(fromDate.getTime())))
     .and(QueryBuilder.lt(timeuuidCol, UUIDs.startOf(toDate.getTime())))
     .and(QueryBuilder.contains(tokenCol, token));
@@ -149,11 +127,10 @@ public class LogEventFinderDAO extends LogEventDAO{
   }
   
   
-  public List<LogEvent> findByAppIdBucketAfterDateContains(final String appId, final String bucket, String token, final Date fromDate)
+  public List<LogEvent> findByAppIdAfterDateContains(final String appId, String token, final Date fromDate)
   {
     Select sel = QueryBuilder.select().from(table);
     sel.where().and(QueryBuilder.eq(pkCols[0], appId))
-    .and(QueryBuilder.eq(pkCols[1], bucket))
     .and(QueryBuilder.gt(timeuuidCol, UUIDs.endOf(fromDate.getTime())))
     .and(QueryBuilder.contains(tokenCol, token));
     
@@ -161,12 +138,11 @@ public class LogEventFinderDAO extends LogEventDAO{
     
     return cassandraOperations.select(sel, LogEvent.class);
   }
-  
-  public List<LogEvent> findByAppIdBucketBeforeDateContains(String appId, String bucket, String token, final Date toDate)
+    
+  public List<LogEvent> findByAppIdBeforeDateContains(String appId, String token, final Date toDate)
   {
     Select sel = QueryBuilder.select().from(table);
     sel.where().and(QueryBuilder.eq(pkCols[0], appId))
-    .and(QueryBuilder.eq(pkCols[1], bucket))
     .and(QueryBuilder.lt(timeuuidCol, UUIDs.startOf(toDate.getTime())))
     .and(QueryBuilder.contains(tokenCol, token));
         
@@ -175,11 +151,10 @@ public class LogEventFinderDAO extends LogEventDAO{
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
-  public List<LogEvent> findByAppIdBucketBetweenDates(String appId, String bucket, Date fromDate, Date toDate)
+  public List<LogEvent> findByAppIdBetweenDates(String appId, Date fromDate, Date toDate)
   {
     Select sel = QueryBuilder.select().from(table);
     sel.where().and(QueryBuilder.eq(pkCols[0], appId))
-    .and(QueryBuilder.eq(pkCols[1], bucket))
     .and(QueryBuilder.gt(timeuuidCol, UUIDs.endOf(fromDate.getTime())))
     .and(QueryBuilder.lt(timeuuidCol, UUIDs.startOf(toDate.getTime())));
     
@@ -187,22 +162,20 @@ public class LogEventFinderDAO extends LogEventDAO{
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
-  public List<LogEvent> findByAppIdBucketBeforeDate(String appId, String bucket, Date toDate)
+  public List<LogEvent> findByAppIdBeforeDate(String appId, Date toDate)
   {
     Select sel = QueryBuilder.select().from(table);
     sel.where().and(QueryBuilder.eq(pkCols[0], appId))
-    .and(QueryBuilder.eq(pkCols[1], bucket))
     .and(QueryBuilder.lt(timeuuidCol, UUIDs.startOf(toDate.getTime())));
     
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
-  public List<LogEvent> findByAppIdBucketAfterDate(String appId, String bucket, Date fromDate)
+  public List<LogEvent> findByAppIdAfterDate(String appId, Date fromDate)
   {
     Select sel = QueryBuilder.select().from(table);
     sel.where().and(QueryBuilder.eq(pkCols[0], appId))
-    .and(QueryBuilder.eq(pkCols[1], bucket))
     .and(QueryBuilder.gt(timeuuidCol, UUIDs.endOf(fromDate.getTime())));
     
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());

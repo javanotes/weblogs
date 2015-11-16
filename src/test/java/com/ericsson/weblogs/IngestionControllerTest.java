@@ -41,7 +41,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.ericsson.weblogs.controllers.IngestionController;
+import com.ericsson.weblogs.controllers.WebServices;
 import com.ericsson.weblogs.dao.LogEventRepository;
 import com.ericsson.weblogs.dto.LogIngestionStatus;
 import com.ericsson.weblogs.dto.LogRequest;
@@ -88,7 +88,6 @@ public class IngestionControllerTest {
     event = new LogRequest();
     event.setLogText("This is some bla blaah bla logging at info level");
     event.setApplicationId(appId);
-    event.setBucket(bucket);
     
     
     try 
@@ -114,7 +113,6 @@ public class IngestionControllerTest {
     event = new LogRequest();
     event.setLogText("This is some bla blaah bla logging at info level");
     event.setApplicationId(appId);
-    event.setBucket(bucket);
     
     List<LogRequest> requests = new ArrayList<>(batchSize);
     LogRequest l;
@@ -123,7 +121,6 @@ public class IngestionControllerTest {
       l = new LogRequest();
       l.setLogText("This is some bla blaah bla logging at info level");
       l.setApplicationId(appId);
-      l.setBucket(bucket);
       
       requests.add(l);
     }
@@ -151,7 +148,6 @@ public class IngestionControllerTest {
     event = new LogRequest();
     event.setLogText("This is some bla blaah bla logging at info level");
     event.setApplicationId(appId);
-    event.setBucket(bucket);
     
     List<LogRequest> requests = new ArrayList<>(batchSize);
     LogRequest l;
@@ -159,7 +155,6 @@ public class IngestionControllerTest {
     {
       l = new LogRequest();
       l.setLogText("This is some bla blaah bla logging at info level");
-      l.setBucket(bucket);
       
       requests.add(l);
     }
@@ -174,7 +169,7 @@ public class IngestionControllerTest {
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertTrue(lr.getMessage().startsWith(IngestionController.RESP_MSG_VALIDATION_ERR));
+      Assert.assertTrue(lr.getMessage().startsWith(WebServices.RESP_MSG_VALIDATION_ERR));
       
     } catch (Exception e) {
       e.printStackTrace();
@@ -187,7 +182,6 @@ public class IngestionControllerTest {
   {
     event = new LogRequest();
     event.setLogText("This is some bla blaah bla logging at info level");
-    event.setBucket(bucket);
     
     
     try 
@@ -200,7 +194,7 @@ public class IngestionControllerTest {
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertTrue(lr.getMessage().startsWith(IngestionController.RESP_MSG_VALIDATION_ERR));
+      Assert.assertTrue(lr.getMessage().startsWith(WebServices.RESP_MSG_VALIDATION_ERR));
       
     } catch (Exception e) {
       e.printStackTrace();
@@ -214,7 +208,6 @@ public class IngestionControllerTest {
     event = new LogRequest();
     event.setLogText("This is some bla blaah bla logging at info level");
     event.setApplicationId(appId);
-    event.setBucket(bucket);
     
     List<String> requests = new ArrayList<>(batchSize);
     for(int i=0; i<batchSize; i++)
@@ -232,7 +225,7 @@ public class IngestionControllerTest {
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertEquals(IngestionController.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
+      Assert.assertEquals(WebServices.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
       
     } catch (Exception e) {
       e.printStackTrace();
@@ -253,7 +246,7 @@ public class IngestionControllerTest {
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertEquals(IngestionController.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
+      Assert.assertEquals(WebServices.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
       
     } catch (Exception e) {
       e.printStackTrace();

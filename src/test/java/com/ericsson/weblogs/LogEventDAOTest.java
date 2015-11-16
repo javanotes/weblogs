@@ -56,8 +56,11 @@ public class LogEventDAOTest {
   {
     
     try {
-      repo.delete(new BasicMapId().with("appId", appId).with("bucket", bucket));
-      repo.delete(new BasicMapId().with("appId", appId+":").with("bucket", bucket));
+      repo.delete(new BasicMapId().with("appId", appId));
+      repo.delete(new BasicMapId().with("appId", appId+":"));
+      
+      //repo.delete(new BasicMapId().with("appId", appId).with("bucket", bucket));
+      //repo.delete(new BasicMapId().with("appId", appId+":").with("bucket", bucket));
     } catch (Exception e) {
       Assert.fail(e.getMessage());
     }
@@ -65,7 +68,7 @@ public class LogEventDAOTest {
   }
   
   final int batchSize = 10;
-  final String appId = "applicationId", bucket = "bucket";
+  final String appId = "applicationId";
   
   @Autowired
   private LogEventFinderDAO fDao;
@@ -73,7 +76,7 @@ public class LogEventDAOTest {
   private LogEventIngestionDAO iDao;
   
   @Test
-  public void testFindByAppIdAndBucket()
+  public void testFindByAppId()
   {
         
     List<LogEvent> requests = new ArrayList<>(batchSize);
@@ -83,65 +86,33 @@ public class LogEventDAOTest {
       event.setId(new LogEventKey());
       event.setLogText("This is some bla blaah bla logging at info level");
       event.getId().setAppId((i % 2 == 0) ? appId : appId+":");
-      event.getId().setBucket(bucket);
-      
       requests.add(event);
     }
     try 
     {
       iDao.ingestAsync(requests);
       
-      List<LogEvent> events = fDao.findByAppIdAndBucket(appId+":", bucket);
+      List<LogEvent> events = fDao.findByAppId(appId+":");
       Assert.assertNotNull("Found null", events);
       Assert.assertEquals("Incorrect resultset size", batchSize/2, events.size());
       
-      events = fDao.findByAppIdAndBucket(appId, bucket);
+      events = fDao.findByAppId(appId);
       Assert.assertNotNull("Found null", events);
       Assert.assertEquals("Incorrect resultset size", batchSize/2, events.size());
       
     } catch (Exception e) {
-      Assert.fail(e.getMessage());
-    }
-    
-  }
-  @Autowired
-  private FullTextSearch fts;
-  @Test
-  public void testFindByAppIdAndBucketWithTerm()
-  {
-        
-    List<LogEvent> requests = new ArrayList<>(batchSize);
-    for(int i=0; i<batchSize; i++)
-    {
-      event = new LogEvent();
-      event.setId(new LogEventKey());
-      event.setLogText("This is some bla blaah bla logging at info level");
-      event.getId().setAppId((i % 2 == 0) ? appId : appId+":");
-      event.getId().setBucket(bucket);
-      event.setTokens(fts.tokenizeText("This is some bla blaah bla logging at info level"));
-      requests.add(event);
-    }
-    try 
-    {
-      iDao.ingestAsync(requests);
-      
-      List<LogEvent> events = fDao.findByAppIdBucketContains(appId, bucket, "bla");
-      Assert.assertNotNull("Found null", events);
-      Assert.assertEquals("Incorrect resultset size", batchSize/2, events.size());
-      
-      events = fDao.findByAppIdBucketContains(appId, bucket, "NOTPRESENT");
-      Assert.assertNotNull("Found null", events);
-      Assert.assertTrue("False resultset returned", events.isEmpty());
-      
-    } catch (Exception e) {
-      e.printStackTrace();
       Assert.fail(e.getMessage());
     }
     
   }
   
+ 
+  @Autowired
+  private FullTextSearch fts;
+  
+  
   @Test
-  public void testFindByAppIdAndBucketWithTermAndDate()
+  public void testFindByAppIdWithTermAndDate()
   {
         
     List<LogEvent> requests = new ArrayList<>(batchSize);
@@ -151,7 +122,6 @@ public class LogEventDAOTest {
       event.setId(new LogEventKey());
       event.setLogText("This is some bla blaah bla logging at info level");
       event.getId().setAppId((i % 2 == 0) ? appId : appId+":");
-      event.getId().setBucket(bucket);
       event.setTokens(fts.tokenizeText("This is some bla blaah bla logging at info level"));
       requests.add(event);
     }
@@ -162,15 +132,15 @@ public class LogEventDAOTest {
       Calendar yesterday = GregorianCalendar.getInstance();
       yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
       
-      List<LogEvent> events = fDao.findByAppIdBucketAfterDateContains(appId, bucket, "bla", yesterday.getTime());
+      List<LogEvent> events = fDao.findByAppIdAfterDateContains(appId, "bla", yesterday.getTime());
       Assert.assertNotNull("Found null", events);
       Assert.assertEquals("Incorrect resultset size", batchSize/2, events.size());
       
-      events = fDao.findByAppIdBucketAfterDateContains(appId, bucket, "NOTPRESENT", yesterday.getTime());
+      events = fDao.findByAppIdAfterDateContains(appId, "NOTPRESENT", yesterday.getTime());
       Assert.assertNotNull("Found null", events);
       Assert.assertTrue("False resultset returned", events.isEmpty());
       
-      events = fDao.findByAppIdBucketBeforeDateContains(appId, bucket, "bla", yesterday.getTime());
+      events = fDao.findByAppIdBeforeDateContains(appId, "bla", yesterday.getTime());
       Assert.assertNotNull("Found null", events);
       Assert.assertTrue("False resultset returned", events.isEmpty());
       
@@ -182,7 +152,7 @@ public class LogEventDAOTest {
   }
   
   @Test
-  public void testFindByAppIdAndBucketWithTermAndDateBetween()
+  public void testFindByAppIdWithTermAndDateBetween()
   {
         
     List<LogEvent> requests = new ArrayList<>(batchSize);
@@ -192,7 +162,6 @@ public class LogEventDAOTest {
       event.setId(new LogEventKey());
       event.setLogText("This is some bla blaah bla logging at info level");
       event.getId().setAppId((i % 2 == 0) ? appId : appId+":");
-      event.getId().setBucket(bucket);
       event.setTokens(fts.tokenizeText("This is some bla blaah bla logging at info level"));
       requests.add(event);
     }
@@ -206,19 +175,19 @@ public class LogEventDAOTest {
       Calendar tomorrow = GregorianCalendar.getInstance();
       tomorrow.set(Calendar.DATE, yesterday.get(Calendar.DATE)+1);
       
-      List<LogEvent> events = fDao.findByAppIdBucketBetweenDatesContains(appId, bucket, "bla", yesterday.getTime(), tomorrow.getTime());
+      List<LogEvent> events = fDao.findByAppIdBetweenDatesContains(appId, "bla", yesterday.getTime(), tomorrow.getTime());
       Assert.assertNotNull("Found null", events);
       Assert.assertEquals("Incorrect resultset size", batchSize/2, events.size());
       
-      events = fDao.findByAppIdBucketBetweenDatesContains(appId, bucket, "NOTPRESENT", yesterday.getTime(), tomorrow.getTime());
+      events = fDao.findByAppIdBetweenDatesContains(appId, "NOTPRESENT", yesterday.getTime(), tomorrow.getTime());
       Assert.assertNotNull("Found null", events);
       Assert.assertTrue("False resultset returned", events.isEmpty());
       
-      events = fDao.findByAppIdBucketBetweenDatesContains(appId, bucket, "bla", yesterday.getTime(), new Date());
+      events = fDao.findByAppIdBetweenDatesContains(appId, "bla", yesterday.getTime(), new Date());
       Assert.assertNotNull("Found null", events);
       Assert.assertEquals("Incorrect resultset size", batchSize/2, events.size());
       
-      events = fDao.findByAppIdBucketBetweenDatesContains(appId, bucket, "bla", new Date(), tomorrow.getTime());
+      events = fDao.findByAppIdBetweenDatesContains(appId, "bla", new Date(), tomorrow.getTime());
       Assert.assertNotNull("Found null", events);
       Assert.assertTrue("False resultset returned", events.isEmpty());
       
@@ -240,7 +209,6 @@ public class LogEventDAOTest {
       event.setId(new LogEventKey());
       event.setLogText("This is some bla blaah bla logging at info level");
       event.getId().setAppId(appId);
-      event.getId().setBucket(bucket);
       
       requests.add(event);
     }
@@ -263,7 +231,6 @@ public class LogEventDAOTest {
       event.setId(new LogEventKey());
       event.setLogText("This is some bla blaah bla logging at info level");
       event.getId().setAppId(appId);
-      event.getId().setBucket(bucket);
       
       requests.add(event);
     }
@@ -285,7 +252,6 @@ public class LogEventDAOTest {
     event.setId(new LogEventKey());
     event.setLogText("This is some bla blaah bla logging at info level");
     event.getId().setAppId(appId);
-    event.getId().setBucket(bucket);
     try {
       iDao.insert(event);
       

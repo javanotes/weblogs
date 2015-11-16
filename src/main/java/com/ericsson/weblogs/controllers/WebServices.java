@@ -1,6 +1,6 @@
 /* ============================================================================
 *
-* FILE: IngestionController.java
+* FILE: WebServices.java
 *
 * MODULE DESCRIPTION:
 * See class description
@@ -19,12 +19,16 @@
 */
 package com.ericsson.weblogs.controllers;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.Validator;
@@ -47,13 +51,36 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j@RestController()
 @RequestMapping("/services")
-public class IngestionController {
+public class WebServices {
 
   public static final String RESP_MSG_INV_JSON_FORMAT = "Unrecognized JSON format.";
   public static final String RESP_MSG_SUCCESS = "Logged successfully.";
   public static final String RESP_MSG_VALIDATION_ERR = "Mandatory fields missing: ";
   public static final String RESP_MSG_INT_SERV_ERR = "Internal server error.";
   
+  @RequestMapping(method = {RequestMethod.GET})
+  public String showServices()
+  {
+    StringBuilder s = new StringBuilder("+ - - - - - - - - - - - - - - - +");
+    s.append("<p>");
+    s.append("RESTful service end points: ").append("<p>");
+    //public methods
+    for(Method m : getClass().getMethods())
+    {
+      if(m.isAnnotationPresent(RequestMapping.class))
+      {
+        RequestMapping rm = m.getAnnotation(RequestMapping.class);
+        
+        String path = Arrays.toString(rm.value());
+        if(!"[]".equals(path))
+          s.append("&nbsp;&nbsp;&nbsp;&nbsp;").append(path).append("&nbsp;")
+              .append(StringUtils.arrayToCommaDelimitedString(rm.method()))
+              .append("<p>");
+      }
+    }
+    s.append("+ - - - - - - - - - - - - - - - +");
+    return s.toString();
+  }
   @ExceptionHandler(HttpMessageNotReadableException.class)
   private @ResponseBody LogResponse handleConversionException(HttpMessageNotReadableException ex, HttpServletRequest req)
   {

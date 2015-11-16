@@ -1,6 +1,6 @@
 /* ============================================================================
 *
-* FILE: LogRequest.java
+* FILE: LogEventDTO.java
 *
 * MODULE DESCRIPTION:
 * See class description
@@ -19,36 +19,35 @@
 */
 package com.ericsson.weblogs.dto;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Date;
 
-import org.hibernate.validator.constraints.NotEmpty;
-import org.springframework.data.cassandra.repository.MapId;
-import org.springframework.data.cassandra.repository.support.BasicMapId;
+import com.datastax.driver.core.utils.UUIDs;
+import com.ericsson.weblogs.domain.LogEvent;
 
 import lombok.Data;
 
 @Data
-public class LogRequest {
+public class LogEventDTO {
 
-  public MapId toMapId()
-  {
-     return new BasicMapId()
-         .with("appId", getApplicationId());
-         //.with("bucket", getBucket());
-   }
-  
-  public LogRequest() {
+  public LogEventDTO(LogEvent domain) {
+
+    this(domain.getId().getAppId(), 
+        domain.getLogText(),
+        new Date(UUIDs.unixTimestamp(domain.getId().getTimestamp())));
+  }
+
+  public LogEventDTO() {
     super();
   }
-  public LogRequest(String applicationId, String logText) {
+
+  public LogEventDTO(String applicationId, String logText,
+      Date timestamp) {
     super();
     this.applicationId = applicationId;
     this.logText = logText;
+    this.timestamp = timestamp;
   }
-  @NotEmpty
-  private String applicationId;//not null
-  
-  private String logText;
-  private Set<String> searchTerms = new HashSet<>();
+
+  private String applicationId, logText;
+  private Date timestamp;
 }

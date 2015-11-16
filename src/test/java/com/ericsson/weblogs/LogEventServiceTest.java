@@ -20,6 +20,8 @@
 package com.ericsson.weblogs;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import org.junit.After;
@@ -34,6 +36,8 @@ import org.springframework.test.context.web.WebAppConfiguration;
 
 import com.ericsson.weblogs.dao.LogEventRepository;
 import com.ericsson.weblogs.dto.LogRequest;
+import com.ericsson.weblogs.dto.QueryRequest;
+import com.ericsson.weblogs.dto.QueryResponse;
 import com.ericsson.weblogs.service.ILoggingService;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -68,7 +72,6 @@ public class LogEventServiceTest {
     event = new LogRequest();
     event.setLogText("This is some bla blaah bla logging at info level");
     event.setApplicationId(appId);
-    event.setBucket(bucket);
     
     try {
       logService.ingestLoggingRequest(event);
@@ -78,14 +81,13 @@ public class LogEventServiceTest {
     }
   }
   final int batchSize = 10;
-  final String appId = "applicationId", bucket = "bucket";
+  final String appId = "applicationId";
   @Test
   public void testInsertLogEvents()
   {
     event = new LogRequest();
     event.setLogText("This is some bla blaah bla logging at info level");
     event.setApplicationId(appId);
-    event.setBucket(bucket);
     
     List<LogRequest> requests = new ArrayList<>(batchSize);
     LogRequest l;
@@ -94,7 +96,6 @@ public class LogEventServiceTest {
       l = new LogRequest();
       l.setLogText("This is some bla blaah bla logging at info level");
       l.setApplicationId(appId);
-      l.setBucket(bucket);
       
       requests.add(l);
     }
@@ -104,5 +105,52 @@ public class LogEventServiceTest {
     } catch (Exception e) {
       Assert.fail(e.getMessage());
     }
+  }
+  @Test
+  public void testFindLogEvents()
+  {
+    testInsertLogEvents();
+    QueryRequest req = new QueryRequest();
+    req.setAppId(appId);
+    
+    Calendar yesterday = GregorianCalendar.getInstance();
+    yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
+    req.setFromDate(yesterday.getTime());
+    
+    Calendar tomorrow = GregorianCalendar.getInstance();
+    tomorrow.set(Calendar.DATE, yesterday.get(Calendar.DATE)+1);
+    req.setTillDate(tomorrow.getTime());
+    
+    QueryResponse resp;
+    try 
+    {
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize, resp.getLogs().size());
+      
+      req.setAppId("doNotMatch");
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      req.setAppId(appId);
+      
+      req.setFromDate(null);
+      resp = logService.fetchLogsTillDate(req);
+      Assert.assertNotNull(resp);
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize, resp.getLogs().size());
+      
+      req.setFromDate(yesterday.getTime());
+      req.setTillDate(null);
+      resp = logService.fetchLogsFromDate(req);
+      Assert.assertNotNull(resp);
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize, resp.getLogs().size());
+      
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
   }
 }

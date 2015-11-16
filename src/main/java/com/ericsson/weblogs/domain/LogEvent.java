@@ -45,7 +45,7 @@ public class LogEvent implements Serializable{
   {
     setId(new LogEventKey());
     getId().setAppId(req.getApplicationId());
-    getId().setBucket(req.getBucket());
+    //getId().setBucket(req.getBucket());
     setLogText(req.getLogText());
   }
   

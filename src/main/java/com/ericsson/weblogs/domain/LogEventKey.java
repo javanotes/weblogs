@@ -42,9 +42,9 @@ public class LogEventKey implements Serializable{
   private static final long serialVersionUID = -8319593299678087621L;
   @PrimaryKeyColumn(type = PrimaryKeyType.PARTITIONED, ordinal = 0, name = "app_id")
   private String appId;
-  @PrimaryKeyColumn(type = PrimaryKeyType.PARTITIONED, ordinal = 1, name = "bucket")
-  private String bucket;
-  @PrimaryKeyColumn(type = PrimaryKeyType.CLUSTERED, ordinal = 2, name = "event_ts", ordering = Ordering.DESCENDING)
+  /*@PrimaryKeyColumn(type = PrimaryKeyType.CLUSTERED, ordinal = 1, name = "bucket")
+  private String bucket;*/
+  @PrimaryKeyColumn(type = PrimaryKeyType.CLUSTERED, ordinal = 1, name = "event_ts", ordering = Ordering.DESCENDING)
   private UUID timestamp;
 
 }

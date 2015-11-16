@@ -22,6 +22,8 @@ package com.ericsson.weblogs.service;
 import java.util.List;
 
 import com.ericsson.weblogs.dto.LogRequest;
+import com.ericsson.weblogs.dto.QueryRequest;
+import com.ericsson.weblogs.dto.QueryResponse;
 
 public interface ILoggingService {
 
@@ -41,5 +43,26 @@ public interface ILoggingService {
   void ingestLoggingRequests(List<LogRequest> requests) throws ServiceException;
 
  
+  /**
+   * 
+   * @param request
+   * @return
+   * @throws ServiceException
+   */
+  QueryResponse fetchLogsFromDate(QueryRequest request) throws ServiceException;
+  /**
+   * 
+   * @param request
+   * @return
+   * @throws ServiceException
+   */
+  QueryResponse fetchLogsTillDate(QueryRequest request) throws ServiceException;
+  /**
+   * 
+   * @param request
+   * @return
+   * @throws ServiceException
+   */
+  QueryResponse fetchLogsBetweenDates(QueryRequest request) throws ServiceException;
 
 }

@@ -375,7 +375,7 @@ class AutoPhrasingTokenFilter extends TokenFilter {
   }
 
   private void emit(char[] token) {
-    System.out.println("emit: " + new String(token));
+    //System.out.println("emit: " + new String(token));
     if (replaceWhitespaceWith != null) {
       token = replaceWhiteSpace(token);
     }

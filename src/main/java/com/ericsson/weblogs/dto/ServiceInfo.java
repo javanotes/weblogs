@@ -1,6 +1,6 @@
 /* ============================================================================
 *
-* FILE: LogResponse.java
+* FILE: ServiceInfo.java
 *
 * MODULE DESCRIPTION:
 * See class description
@@ -19,24 +19,10 @@
 */
 package com.ericsson.weblogs.dto;
 
-import java.io.Serializable;
-
 import lombok.Data;
 
 @Data
-public class LogResponse implements Serializable{
-  /**
-   * 
-   */
-  private static final long serialVersionUID = 964397647213340381L;
-  LogIngestionStatus status;
-  String message;
-  public LogResponse(LogIngestionStatus status, String message) {
-    super();
-    this.status = status;
-    this.message = message;
-  }
-  public LogResponse() {
-    super();
-  }
+public class ServiceInfo {
+
+  private String endPoint, method, req, res;
 }

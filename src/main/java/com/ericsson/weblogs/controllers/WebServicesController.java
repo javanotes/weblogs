@@ -1,6 +1,6 @@
 /* ============================================================================
 *
-* FILE: WebServices.java
+* FILE: WebServicesController.java
 *
 * MODULE DESCRIPTION:
 * See class description
@@ -19,15 +19,21 @@
 */
 package com.ericsson.weblogs.controllers;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
+import javax.annotation.security.PermitAll;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -38,33 +44,40 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
 
 import com.ericsson.weblogs.dto.LogIngestionStatus;
 import com.ericsson.weblogs.dto.LogRequest;
 import com.ericsson.weblogs.dto.LogRequests;
 import com.ericsson.weblogs.dto.LogResponse;
+import com.ericsson.weblogs.dto.ServiceInfo;
 import com.ericsson.weblogs.service.ILoggingService;
 import com.ericsson.weblogs.service.ServiceException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j@RestController()
+@Slf4j@Controller()
 @RequestMapping("/services")
-public class WebServices {
+public class WebServicesController {
 
   public static final String RESP_MSG_INV_JSON_FORMAT = "Unrecognized JSON format.";
   public static final String RESP_MSG_SUCCESS = "Logged successfully.";
   public static final String RESP_MSG_VALIDATION_ERR = "Mandatory fields missing: ";
   public static final String RESP_MSG_INT_SERV_ERR = "Internal server error.";
   
+  static final String JSON_STR_SPAN_HTML = "{outline: 1px solid #ccc; padding: 5px; margin: 5px; color: green;}";
+  static final String JSON_NUM_SPAN_HTML = "{outline: 1px solid #ccc; padding: 5px; margin: 5px; color: darkorange;}";
+  static final String JSON_KEY_SPAN_HTML = "{outline: 1px solid #ccc; padding: 5px; margin: 5px; color: red;}";
+  static final String JSON_REGEX = "/(\"(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\\"])*\"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g";
+  @PermitAll
   @RequestMapping(method = {RequestMethod.GET})
-  public String showServices()
+  public String showServices(Model model)
   {
-    StringBuilder s = new StringBuilder("+ - - - - - - - - - - - - - - - +");
-    s.append("<p>");
-    s.append("RESTful service end points: ").append("<p>");
+   
+    List<ServiceInfo> infoList = new ArrayList<>();
     //public methods
+    ServiceInfo info;
     for(Method m : getClass().getMethods())
     {
       if(m.isAnnotationPresent(RequestMapping.class))
@@ -73,13 +86,56 @@ public class WebServices {
         
         String path = Arrays.toString(rm.value());
         if(!"[]".equals(path))
-          s.append("&nbsp;&nbsp;&nbsp;&nbsp;").append(path).append("&nbsp;")
-              .append(StringUtils.arrayToCommaDelimitedString(rm.method()))
-              .append("<p>");
+        {
+          
+          info = new ServiceInfo();
+          info.setEndPoint(path);
+          info.setMethod(StringUtils.arrayToCommaDelimitedString(rm.method()));
+                    
+          try 
+          {
+            int i=0;boolean hasBody = false;
+            for(Annotation[] anns : m.getParameterAnnotations())
+            {
+              for(Annotation a : anns)
+              {
+                if(a.annotationType() == RequestBody.class)
+                {
+                  hasBody = true;
+                  break;
+                }
+              }
+              if (hasBody) {
+                break;
+              }
+              i++;
+            }
+            if (hasBody) 
+            {
+              ObjectWriter wr = new ObjectMapper().writerWithDefaultPrettyPrinter();
+              Object o = m.getParameterTypes()[i].newInstance();
+              String json = wr.writeValueAsString(o)/*.replaceAll("[\r\n]", "<p>")*/;
+              json = json.replaceAll("null", "\"null\"");
+              info.setReq(json);
+              
+              o = m.getReturnType().newInstance();
+              json = wr.writeValueAsString(o)/*.replaceAll("[\r\n]", "<p>")*/;
+              json = json.replaceAll("null", "\"null\"");
+              info.setRes(json);
+            }
+            
+            infoList.add(info);
+            
+          } catch (Exception e) {
+            // ignored
+            log.debug("-- While trying to introspect service method --", e);
+          }
+        }
       }
     }
-    s.append("+ - - - - - - - - - - - - - - - +");
-    return s.toString();
+    log.info(infoList.toString());
+    model.addAttribute("infoList", infoList);
+    return "fragments/showservices";
   }
   @ExceptionHandler(HttpMessageNotReadableException.class)
   private @ResponseBody LogResponse handleConversionException(HttpMessageNotReadableException ex, HttpServletRequest req)
@@ -100,7 +156,7 @@ public class WebServices {
   private ILoggingService logService;
   
   @RequestMapping(method = {RequestMethod.POST}, value = "/ingest")
-  public LogResponse ingestRequest(@RequestBody@Valid LogRequest request, BindingResult errors, HttpServletRequest req)
+  public @ResponseBody LogResponse ingestRequest(@RequestBody@Valid LogRequest request, BindingResult errors, HttpServletRequest req)
   {
     if(errors.hasFieldErrors())
     {
@@ -126,7 +182,7 @@ public class WebServices {
   private Validator validator;
   
   @RequestMapping(method = {RequestMethod.POST}, value = "/ingestbatch")
-  public LogResponse ingestRequests(@RequestBody@Valid LogRequests request, BindingResult errors, HttpServletRequest req)
+  public @ResponseBody LogResponse ingestRequests(@RequestBody@Valid LogRequests request, BindingResult errors, HttpServletRequest req)
   {
     if(errors.hasFieldErrors())
     {

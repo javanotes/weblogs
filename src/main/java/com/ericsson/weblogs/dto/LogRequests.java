@@ -19,6 +19,7 @@
 */
 package com.ericsson.weblogs.dto;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +28,12 @@ import org.hibernate.validator.constraints.NotEmpty;
 import lombok.Data;
 
 @Data
-public class LogRequests {
+public class LogRequests implements Serializable{
+
+  /**
+   * 
+   */
+  private static final long serialVersionUID = -1669994217311842090L;
 
   public LogRequests() {
     super();

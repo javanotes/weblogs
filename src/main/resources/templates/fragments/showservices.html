@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:tiles="http://www.thymeleaf.org/tiles" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8"></meta>
+<meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'></meta>
+<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+<!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+
+<title>Weblogs</title>
+<style th:replace="common/cssresources"></style>
+<script th:replace="common/jsresources"></script>
+<script>
+	
+</script>
+</head>
+
+<body class="hold-transition skin-blue layout-boxed sidebar-mini">
+  <div class="wrapper box">
+    
+    <!-- Content Wrapper. Contains page content -->
+    <div >
+
+      <!-- Main content -->
+      <section class="content" style="width: 70%">
+
+        <div class="row">
+          <div class="col-md-12">
+
+						<div class="box box-solid box-primary">
+
+							<div class="page-header"
+								style="text-align: center; background-color: #3c8dba">
+								<h1 style="text-align: center;">
+									<span style="color: #fff; font-size: large;">RESTful
+										service end points</span>
+								</h1>
+							</div>
+
+							<div class="box-body">
+								<div th:each="info : ${infoList}" class="row">
+									<div class="col-md-12">
+										<div class="box box-default collapsed-box">
+											<div class="box-header with-border">
+												<h3 class="box-title" th:text="${info.endPoint} + '&nbsp;&nbsp;&nbsp;&nbsp;method='+${info.method}">Point</h3>
+
+												<div class="box-tools pull-right">
+													<button type="button" class="btn btn-box-tool"
+														data-widget="collapse">
+														<i class="fa fa-plus"></i>
+													</button>
+												</div>
+												<!-- /.box-tools -->
+											</div>
+											<!-- /.box-header -->
+											<div class="box-body">
+												<div class="row">
+													<div class="col-md-6">
+														<div class="box-header">Request</div>
+														<p th:text="${info.req}"></p>
+													</div>
+													<div class="col-md-6">
+														<div class="box-header">Response</div>
+														<p th:text="${info.res}"></p>
+													</div>
+												</div>
+											</div>
+											<!-- /.box-body -->
+										</div>
+										<!-- /.box -->
+									</div>
+									<!-- /.col -->
+								</div>
+																
+							</div>
+							
+
+						</div>
+
+					</div>
+          <!-- /.col -->
+        </div>
+        <!-- /.row -->
+
+
+      </section>
+      <!-- /.content -->
+    </div>
+    <!-- /.content-wrapper -->
+
+  </div>
+  <!-- ./wrapper -->
+
+</body>
+
+<script th:inline="javascript">
+/*<![CDATA[*/
+           
+//Ref: http://stackoverflow.com/questions/4810841/how-can-i-pretty-print-json-using-javascript
+function syntaxHighlight(json) {
+    if (typeof json != 'string') {
+         json = JSON.stringify(json, undefined, 2);
+    }
+    else{
+    	json = JSON.stringify(JSON.parse(json),null,2);
+    }
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        var cls = 'number';
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+                cls = 'key';
+            } else {
+                cls = 'string';
+            }
+        } else if (/true|false/.test(match)) {
+            cls = 'boolean';
+        } else if (/null/.test(match)) {
+            cls = 'null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+    });
+}
+$(document).ready(function() {
+	var json = syntaxHighlight('{"name":"Colonel", "age":5, "ranks":[{"code":1, "desig":"DA"}, {"code":2, "desig":"PA"}]}');
+	console.log(json);		
+} );
+
+/*]]>*/
+</script>
+<!-- /.box -->
+</html>

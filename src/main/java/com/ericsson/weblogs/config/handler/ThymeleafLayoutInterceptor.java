@@ -20,6 +20,7 @@
 
 package com.ericsson.weblogs.config.handler;
 
+import javax.annotation.security.PermitAll;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -90,6 +91,10 @@ public class ThymeleafLayoutInterceptor extends HandlerInterceptorAdapter {
    */
   private String getLayoutName(Object handler, HttpServletRequest request, String originalViewName) {
     HandlerMethod h = (HandlerMethod) handler;
+    if(h.getMethodAnnotation(PermitAll.class) != null)
+    {
+      return originalViewName;
+    }
     if(h.getBeanType() == LoginController.class && (request.getRequestURI().contains("signin") || request.getRequestURI().equals("/")))
     {
       return LOGIN_LAYOUT;

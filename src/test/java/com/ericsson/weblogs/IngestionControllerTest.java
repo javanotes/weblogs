@@ -41,7 +41,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.ericsson.weblogs.controllers.WebServices;
+import com.ericsson.weblogs.controllers.WebServicesController;
 import com.ericsson.weblogs.dao.LogEventRepository;
 import com.ericsson.weblogs.dto.LogIngestionStatus;
 import com.ericsson.weblogs.dto.LogRequest;
@@ -169,7 +169,7 @@ public class IngestionControllerTest {
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertTrue(lr.getMessage().startsWith(WebServices.RESP_MSG_VALIDATION_ERR));
+      Assert.assertTrue(lr.getMessage().startsWith(WebServicesController.RESP_MSG_VALIDATION_ERR));
       
     } catch (Exception e) {
       e.printStackTrace();
@@ -194,7 +194,7 @@ public class IngestionControllerTest {
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertTrue(lr.getMessage().startsWith(WebServices.RESP_MSG_VALIDATION_ERR));
+      Assert.assertTrue(lr.getMessage().startsWith(WebServicesController.RESP_MSG_VALIDATION_ERR));
       
     } catch (Exception e) {
       e.printStackTrace();
@@ -225,7 +225,7 @@ public class IngestionControllerTest {
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertEquals(WebServices.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
+      Assert.assertEquals(WebServicesController.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
       
     } catch (Exception e) {
       e.printStackTrace();
@@ -246,7 +246,7 @@ public class IngestionControllerTest {
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertEquals(WebServices.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
+      Assert.assertEquals(WebServicesController.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
       
     } catch (Exception e) {
       e.printStackTrace();

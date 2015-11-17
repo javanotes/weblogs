@@ -19,6 +19,7 @@
 */
 package com.ericsson.weblogs.dto;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -29,8 +30,12 @@ import org.springframework.data.cassandra.repository.support.BasicMapId;
 import lombok.Data;
 
 @Data
-public class LogRequest {
+public class LogRequest implements Serializable{
 
+  /**
+   * 
+   */
+  private static final long serialVersionUID = -251827285602328542L;
   public MapId toMapId()
   {
      return new BasicMapId()

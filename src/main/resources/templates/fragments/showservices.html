@@ -25,7 +25,7 @@
     <div >
 
       <!-- Main content -->
-      <section class="content" style="width: 70%">
+      <section class="content" style="width: 80%">
 
         <div class="row">
           <div class="col-md-12">
@@ -60,11 +60,11 @@
 												<div class="row">
 													<div class="col-md-6">
 														<div class="box-header">Request</div>
-														<p th:text="${info.req}"></p>
+														<pre th:id="'preq-'+${info.endPoint}" th:text="${info.req}"></pre>
 													</div>
 													<div class="col-md-6">
 														<div class="box-header">Response</div>
-														<p th:text="${info.res}"></p>
+														<pre th:id="'pres-'+${info.endPoint}" th:text="${info.res}"></pre>
 													</div>
 												</div>
 											</div>
@@ -98,7 +98,12 @@
 
 <script th:inline="javascript">
 /*<![CDATA[*/
-           
+          
+	var JSON_STR_SPAN_HTML = "unicode-bidi: embed; white-space: pre; outline: 1px solid #ccc; padding: 5px; margin: 5px; color: green;";
+	var JSON_BOOL_SPAN_HTML = "unicode-bidi: embed; white-space: pre; outline: 1px solid #ccc; padding: 5px; margin: 5px; color: darkblue;";
+  	var JSON_NUM_SPAN_HTML = "unicode-bidi: embed; white-space: pre; outline: 1px solid #ccc; padding: 5px; margin: 5px; color: darkorange;";
+  	var JSON_KEY_SPAN_HTML = "unicode-bidi: embed; white-space: pre; outline: 1px solid #ccc; padding: 5px; margin: 5px; color: red;";
+  	
 //Ref: http://stackoverflow.com/questions/4810841/how-can-i-pretty-print-json-using-javascript
 function syntaxHighlight(json) {
     if (typeof json != 'string') {
@@ -109,24 +114,43 @@ function syntaxHighlight(json) {
     }
     json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-        var cls = 'number';
+        var cls = JSON_NUM_SPAN_HTML;
         if (/^"/.test(match)) {
             if (/:$/.test(match)) {
-                cls = 'key';
+                cls = JSON_KEY_SPAN_HTML;
             } else {
-                cls = 'string';
+                cls = JSON_STR_SPAN_HTML;
             }
         } else if (/true|false/.test(match)) {
-            cls = 'boolean';
+            cls = JSON_BOOL_SPAN_HTML;
         } else if (/null/.test(match)) {
             cls = 'null';
         }
-        return '<span class="' + cls + '">' + match + '</span>';
+        return '<span style="' + cls + '">' + match + '</span>';
     });
 }
+function stringifyJson(json){
+	if (typeof json != 'string'){
+        return JSON.stringify(json, undefined, 2);
+   }
+   else{
+   	return JSON.stringify(JSON.parse(json),null,2);
+   }
+	
+}
 $(document).ready(function() {
-	var json = syntaxHighlight('{"name":"Colonel", "age":5, "ranks":[{"code":1, "desig":"DA"}, {"code":2, "desig":"PA"}]}');
-	console.log(json);		
+	
+	$("a[id^=preq-]").each(function(){
+		var text = $(this).text();
+		var html = stringifyJson(text);
+		$(this).html(html);
+	});
+	
+	$("a[id^=pres-]").each(function(){
+		var text = $(this).text();
+		var html = stringifyJson(text);
+		$(this).html(html);
+	});
 } );
 
 /*]]>*/

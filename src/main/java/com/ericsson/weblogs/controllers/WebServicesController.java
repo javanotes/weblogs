@@ -52,12 +52,14 @@ import com.ericsson.weblogs.dto.LogResponse;
 import com.ericsson.weblogs.dto.ServiceInfo;
 import com.ericsson.weblogs.service.ILoggingService;
 import com.ericsson.weblogs.service.ServiceException;
+import com.ericsson.weblogs.utils.CommonHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j@Controller()
+@Slf4j
+@Controller()
 @RequestMapping("/services")
 public class WebServicesController {
 
@@ -65,42 +67,31 @@ public class WebServicesController {
   public static final String RESP_MSG_SUCCESS = "Logged successfully.";
   public static final String RESP_MSG_VALIDATION_ERR = "Mandatory fields missing: ";
   public static final String RESP_MSG_INT_SERV_ERR = "Internal server error.";
-  
-  static final String JSON_STR_SPAN_HTML = "{outline: 1px solid #ccc; padding: 5px; margin: 5px; color: green;}";
-  static final String JSON_NUM_SPAN_HTML = "{outline: 1px solid #ccc; padding: 5px; margin: 5px; color: darkorange;}";
-  static final String JSON_KEY_SPAN_HTML = "{outline: 1px solid #ccc; padding: 5px; margin: 5px; color: red;}";
-  static final String JSON_REGEX = "/(\"(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\\"])*\"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g";
+
   @PermitAll
-  @RequestMapping(method = {RequestMethod.GET})
-  public String showServices(Model model)
-  {
-   
+  @RequestMapping(method = { RequestMethod.GET })
+  public String showServices(Model model) {
+
     List<ServiceInfo> infoList = new ArrayList<>();
-    //public methods
+    // public methods
     ServiceInfo info;
-    for(Method m : getClass().getMethods())
-    {
-      if(m.isAnnotationPresent(RequestMapping.class))
-      {
+    for (Method m : getClass().getMethods()) {
+      if (m.isAnnotationPresent(RequestMapping.class)) {
         RequestMapping rm = m.getAnnotation(RequestMapping.class);
-        
+
         String path = Arrays.toString(rm.value());
-        if(!"[]".equals(path))
-        {
-          
+        if (!"[]".equals(path)) {
+
           info = new ServiceInfo();
           info.setEndPoint(path);
           info.setMethod(StringUtils.arrayToCommaDelimitedString(rm.method()));
-                    
-          try 
-          {
-            int i=0;boolean hasBody = false;
-            for(Annotation[] anns : m.getParameterAnnotations())
-            {
-              for(Annotation a : anns)
-              {
-                if(a.annotationType() == RequestBody.class)
-                {
+
+          try {
+            int i = 0;
+            boolean hasBody = false;
+            for (Annotation[] anns : m.getParameterAnnotations()) {
+              for (Annotation a : anns) {
+                if (a.annotationType() == RequestBody.class) {
                   hasBody = true;
                   break;
                 }
@@ -110,25 +101,27 @@ public class WebServicesController {
               }
               i++;
             }
-            if (hasBody) 
-            {
-              ObjectWriter wr = new ObjectMapper().writerWithDefaultPrettyPrinter();
-              Object o = m.getParameterTypes()[i].newInstance();
-              String json = wr.writeValueAsString(o)/*.replaceAll("[\r\n]", "<p>")*/;
-              json = json.replaceAll("null", "\"null\"");
+            if (hasBody) {
+              ObjectWriter wr = new ObjectMapper()
+                  .writerWithDefaultPrettyPrinter();
+              Object o = CommonHelper.instantiateRecursively(m.getParameterTypes()[i]);
+              String json = wr
+                  .writeValueAsString(o);
+              json = json.replaceAll("null", "\"\"");
               info.setReq(json);
-              
-              o = m.getReturnType().newInstance();
-              json = wr.writeValueAsString(o)/*.replaceAll("[\r\n]", "<p>")*/;
-              json = json.replaceAll("null", "\"null\"");
+
+              o = CommonHelper.instantiateRecursively(m.getReturnType());
+              json = wr.writeValueAsString(o);
+              json = json.replaceAll("null", "\"\"");
               info.setRes(json);
             }
-            
+
             infoList.add(info);
-            
+
           } catch (Exception e) {
             // ignored
-            log.debug("-- While trying to introspect service method --", e);
+            log.warn("While trying to introspect service method >> "+ e.getMessage());
+            log.debug("--Stacktrace--", e);
           }
         }
       }
@@ -137,38 +130,44 @@ public class WebServicesController {
     model.addAttribute("infoList", infoList);
     return "fragments/showservices";
   }
+
   @ExceptionHandler(HttpMessageNotReadableException.class)
-  private @ResponseBody LogResponse handleConversionException(HttpMessageNotReadableException ex, HttpServletRequest req)
-  {
-    log.error("Remote host ["+req.getRemoteHost()+"] sent unrecognized JSON format: "+ex.getMostSpecificCause().getMessage());
+  private @ResponseBody LogResponse handleConversionException(
+      HttpMessageNotReadableException ex, HttpServletRequest req) {
+    log.error("Remote host [" + req.getRemoteHost()
+        + "] sent unrecognized JSON format: "
+        + ex.getMostSpecificCause().getMessage());
     log.debug("--- Stacktrace ---", ex);
-    return new LogResponse(LogIngestionStatus.REJECTED, RESP_MSG_INV_JSON_FORMAT);
+    return new LogResponse(LogIngestionStatus.REJECTED,
+        RESP_MSG_INV_JSON_FORMAT);
   }
-      
+
   @ExceptionHandler(Exception.class)
   @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR, reason = "")
-  private @ResponseBody LogResponse handleException(Exception ex, HttpServletRequest req)
-  {
-    log.error("Unhandled exception: "+ex.getMessage(), ex);
-    return new LogResponse(LogIngestionStatus.UNAVAILABLE, RESP_MSG_INT_SERV_ERR);
+  private @ResponseBody LogResponse handleException(Exception ex,
+      HttpServletRequest req) {
+    log.error("Unhandled exception: " + ex.getMessage(), ex);
+    return new LogResponse(LogIngestionStatus.UNAVAILABLE,
+        RESP_MSG_INT_SERV_ERR);
   }
+
   @Autowired
   private ILoggingService logService;
-  
-  @RequestMapping(method = {RequestMethod.POST}, value = "/ingest")
-  public @ResponseBody LogResponse ingestRequest(@RequestBody@Valid LogRequest request, BindingResult errors, HttpServletRequest req)
-  {
-    if(errors.hasFieldErrors())
-    {
+
+  @RequestMapping(method = { RequestMethod.POST }, value = "/ingest")
+  public @ResponseBody LogResponse ingestRequest(
+      @RequestBody @Valid LogRequest request, BindingResult errors,
+      HttpServletRequest req) {
+    if (errors.hasFieldErrors()) {
       StringBuilder s = new StringBuilder(RESP_MSG_VALIDATION_ERR);
-      for(FieldError fe : errors.getFieldErrors())
-      {
-        s.append("[").append(fe.getField()).append("]" );
+      for (FieldError fe : errors.getFieldErrors()) {
+        s.append("[").append(fe.getField()).append("]");
       }
-      log.error("Remote host ["+req.getRemoteHost()+"] had validation errors in request: "+s.toString());
+      log.error("Remote host [" + req.getRemoteHost()
+          + "] had validation errors in request: " + s.toString());
       return new LogResponse(LogIngestionStatus.REJECTED, s.toString());
     }
-    log.debug("------->>>>>>> Got request: "+request);
+    log.debug("------->>>>>>> Got request: " + request);
     try {
       logService.ingestLoggingRequest(request);
       return new LogResponse(LogIngestionStatus.SUCCESS, RESP_MSG_SUCCESS);
@@ -177,40 +176,37 @@ public class WebServicesController {
       return new LogResponse(LogIngestionStatus.FAILURE, e.getMessage());
     }
   }
-  
+
   @Autowired
   private Validator validator;
-  
-  @RequestMapping(method = {RequestMethod.POST}, value = "/ingestbatch")
-  public @ResponseBody LogResponse ingestRequests(@RequestBody@Valid LogRequests request, BindingResult errors, HttpServletRequest req)
-  {
-    if(errors.hasFieldErrors())
-    {
+
+  @RequestMapping(method = { RequestMethod.POST }, value = "/ingestbatch")
+  public @ResponseBody LogResponse ingestRequests(
+      @RequestBody @Valid LogRequests request, BindingResult errors,
+      HttpServletRequest req) {
+    if (errors.hasFieldErrors()) {
       StringBuilder s = new StringBuilder(RESP_MSG_VALIDATION_ERR);
-      for(FieldError fe : errors.getFieldErrors())
-      {
-        s.append("[").append(fe.getField()).append("]" );
+      for (FieldError fe : errors.getFieldErrors()) {
+        s.append("[").append(fe.getField()).append("]");
       }
-      log.error("Remote host ["+req.getRemoteHost()+"] had validation errors in request: "+s.toString());
+      log.error("Remote host [" + req.getRemoteHost()
+          + "] had validation errors in request: " + s.toString());
       return new LogResponse(LogIngestionStatus.REJECTED, s.toString());
     }
-    for(LogRequest r : request.getBatch())
-    {
+    for (LogRequest r : request.getBatch()) {
       validator.validate(r, errors);
     }
-    if(errors.hasFieldErrors())
-    {
+    if (errors.hasFieldErrors()) {
       StringBuilder s = new StringBuilder(RESP_MSG_VALIDATION_ERR);
-      for(FieldError fe : errors.getFieldErrors())
-      {
-        s.append("[").append(fe.getField()).append("]" );
+      for (FieldError fe : errors.getFieldErrors()) {
+        s.append("[").append(fe.getField()).append("]");
       }
-      log.error("Remote host ["+req.getRemoteHost()+"] had validation errors in request: "+s.toString());
+      log.error("Remote host [" + req.getRemoteHost()
+          + "] had validation errors in request: " + s.toString());
       return new LogResponse(LogIngestionStatus.REJECTED, s.toString());
     }
-    log.debug("------->>>>>>> Got request: "+request);
-    try 
-    {
+    log.debug("------->>>>>>> Got request: " + request);
+    try {
       logService.ingestLoggingRequests(request.getBatch());
       return new LogResponse(LogIngestionStatus.SUCCESS, RESP_MSG_SUCCESS);
     } catch (ServiceException e) {

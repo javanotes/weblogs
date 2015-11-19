@@ -28,7 +28,7 @@ import lombok.Data;
 public class QueryResponse {
 
   private List<LogEventDTO> logs = new ArrayList<>();
-
+  private String error;
   public QueryResponse(List<LogEventDTO> logs) {
     super();
     this.logs.addAll(logs);

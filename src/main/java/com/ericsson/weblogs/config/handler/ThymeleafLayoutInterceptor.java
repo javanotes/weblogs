@@ -26,6 +26,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
@@ -89,15 +90,29 @@ public class ThymeleafLayoutInterceptor extends HandlerInterceptorAdapter {
    * @param originalViewName
    * @return
    */
-  private String getLayoutName(Object handler, HttpServletRequest request, String originalViewName) {
+  private String getLayoutName(Object handler, HttpServletRequest request,
+      String originalViewName) {
     HandlerMethod h = (HandlerMethod) handler;
-    if(h.getMethodAnnotation(PermitAll.class) != null)
-    {
+    if (h.getMethodAnnotation(PermitAll.class) != null) {
       return originalViewName;
     }
-    if(h.getBeanType() == LoginController.class && (request.getRequestURI().contains("signin") || request.getRequestURI().equals("/")))
+    
+    if (h.getBeanType() == LoginController.class) 
     {
-      return LOGIN_LAYOUT;
+      RequestMapping rm = h.getMethodAnnotation(RequestMapping.class);
+      if(rm != null)
+      {
+        String[] loginUrlPatterns = rm.value();
+        for(String pattern : loginUrlPatterns)
+        {
+          if("/".equals(pattern) || "/signin".equals(pattern))
+          {
+            return LOGIN_LAYOUT;
+          }
+        }
+        
+      }
+      
     }
     return DEFAULT_LAYOUT;
   }

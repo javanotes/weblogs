@@ -3,7 +3,7 @@
 
     <header class="main-header">
       <!-- Logo -->
-      <a href="index2.html" class="logo"><b>COX </b> EMT </a>
+      <a href="index2.html" class="logo"><b>WebLogs </b> console</a>
       <!-- Header Navbar: style can be found in header.less -->
       <nav class="navbar navbar-static-top" role="navigation">
         <!-- Sidebar toggle button-->
@@ -22,14 +22,14 @@
 
             <!-- User Account: style can be found in dropdown.less -->
             <li class="dropdown user user-menu"><a href="#" class="dropdown-toggle" data-toggle="dropdown"> <!-- <img th:src="@{/webjars/dist/img/user4-128x128.jpg}" class="user-image" alt="User Image"/> -->
-                <span class="hidden-xs" th:utext="'Welcome, &nbsp; &lt;b&gt;' + ${user.displayName} + '&lt;/b&gt;'">James
+                <span class="hidden-xs" th:utext="'Welcome, &nbsp; &lt;b&gt;' + ${username} + '&lt;/b&gt;'">James
                   Bond</span>
             </a>
               <ul class="dropdown-menu">
                 <!-- User image -->
                 <li class="user-header"><img th:src="@{/webjars/dist/img/avatar.png}" class="img-circle"
                   alt="User Image" />
-                  <p th:text="${user.firstName} +' '+ ${user.lastName} + ' - ' + ${user.role}">
+                  <p th:text="${username}">
                     Alexander Pierce - System Admin <small>Member since Nov. 2012</small>
                   </p></li>
                 <!-- Menu Body -->

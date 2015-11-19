@@ -1,0 +1,231 @@
+<div class="box box-solid box-primary" th:fragment="content"
+	xmlns:th="http://www.thymeleaf.org">
+	
+	<table style="border-collapse: separate; border-spacing: 20px;">
+		<tr>
+			<td><label>Application ID </label>&nbsp;&nbsp;<input type="text" id="appId" name="appId" />
+			</td>
+			<td><label>Search Term </label>&nbsp;&nbsp;<input type="text" id="term" name="term" />
+			</td>
+			<td><label>Auto Refresh </label>&nbsp;&nbsp; <input disabled="disabled"
+				th:checked="${p_refresh == true}" id="autoRefresh" type="checkbox"
+				name="autoRefresh"></input></td>
+			
+		</tr>
+		<tr>
+			
+			<td>
+				<!-- Date and time range -->
+				<label>Date Range</label>&nbsp;&nbsp;
+
+					<input type="text" id="reportrange" />
+			</td>
+			<td>
+				<button id="btnRefresh" class="btn btn-primary">
+					<span class="glyphicon glyphicon-search"></span> Search
+				</button>
+			</td>
+		</tr>
+	</table>
+
+	<div id="nodataDiv" class="alert alert-warning" align="center" style="display: none;">
+		<h3>
+			<i class="fa fa-warning"></i>&nbsp;&nbsp;<span>No data found!</span>
+		</h3>
+	</div>
+	
+	<!-- Wait Modal Start here-->
+	<div class="modal fade bs-example-modal-sm" id="myPleaseWait"
+		tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+		<div class="modal-dialog modal-sm">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 class="modal-title">
+						<span> </span>Fetching ..
+					</h4>
+				</div>
+				<div class="modal-body">
+					<div class="progress">
+						<div
+							class="progress-bar progress-bar-info
+                    progress-bar-striped active"
+							style="width: 100%"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- Wait Modal ends Here -->
+	
+	<div id="mainForm" style="display: none;">
+		
+		<div class="box box-solid box-primary">
+			<div class="box-header with-border">
+				<h4 class="box-title">Execution Point Status</h4>
+	
+			</div>
+			<table id="batchExecPtDetailsTable" 
+				class="table table-bordered table-striped table-hover table-condensed dt-responsive nowrap">
+				<thead>
+					<tr>
+						<th>Logged Time</th>
+						<th>Logged Text</th>
+					</tr>
+				</thead>
+				<tbody>
+	
+				</tbody>
+	
+			</table>
+		</div>
+		
+	</div>
+	
+	<script th:inline="javascript">
+		//Note: the CDATA is for Thymeleaf inline processing.
+		//setting a javascript var using a server side attribute
+		
+		/*<![CDATA[*/
+				
+		var _url = [[@{/logsearch}]];
+		var refresh;
+		var table;
+		
+		function prepareEPTable(epList){
+			var innerHtml = '';
+						
+			//prepare body
+			for(var i=0; i<epList.length; i++){
+				innerHtml += '<tr>';
+				innerHtml += '<td><a>'+epList[i].timestamp+'</a></td>';
+				innerHtml += '<td><a>'+epList[i].logText+'</a></td>';
+				innerHtml += '</tr>';
+			}
+									
+			$('#batchExecPtDetailsTable tbody').html(innerHtml);
+		}
+		
+		$(document).ready(function() {
+			refresh = $('#autoRefresh').is(':checked');
+			
+			$('#reportrange').on('cancel.daterangepicker', function(ev, picker) {
+			      $(this).val('');
+			 });
+			
+		    $('#reportrange').daterangepicker(
+		        {
+		          ranges: {
+		            'Today': [moment(), moment()],
+		            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+		            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+		            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+		            'This Month': [moment().startOf('month'), moment().endOf('month')],
+		            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+		          },
+		          startDate: moment().subtract(29, 'days'),
+		          endDate: moment(),
+		          autoUpdateInput: false,
+		          locale: {
+		              cancelLabel: 'Clear'
+		          }
+		        },
+		        function (start, end) {
+		          $('#reportrange').text(start.format('MMM D, YYYY') + ' - ' + end.format('MMM D, YYYY'));
+		        }
+		    );
+			      		      		
+			//handle checkbox toggle
+			$('#autoRefresh').change(function() {
+		        if($(this).is(":checked")) {
+		        	refresh = true;
+		            refreshPage();
+		            timer = setInterval(refreshPage, 5000);
+		            
+		        }
+		        else{
+		        	refresh = false;
+		        	if(timer)
+		        		clearInterval(timer);
+		        }
+		          
+		    });
+			
+			//handle refresh button click
+			$('#btnRefresh').click(function(){
+				refreshPage();
+			});
+						
+			if(refresh){
+				timer = setInterval(refreshPage, 5000);
+			}	
+
+		});
+				
+		function refreshPage(){
+			//using location.reload() would take the context out of this request
+			var term = $('#term').val();
+			var appId = $('#appId').val();
+			var dtRange = $('#reportrange').val();
+			
+			
+			if(!appId){
+				showAlertModal('Application ID is required');
+				return;
+			}
+			if(!dtRange){
+				showAlertModal('Date Range is required');
+				return;
+			}	
+			
+			$.ajax({
+				url : _url,
+				method : 'GET',
+				data: {p_term: term, p_appid: appId, p_dtrange: dtRange, p_refresh: refresh},
+				dataType: "json",
+				success : function(data){
+					
+					if(data.error){
+						$('#myPleaseWait').modal('hide');
+						showAlertModal(data.error);
+					}
+					else if(!data.logs || $.isEmptyObject(data.logs)){
+						$('#myPleaseWait').modal('hide');
+						$('#nodataDiv').show();
+					}
+					else{
+						prepareEPTable(data.logs);
+						if(table){
+							table.fnDestroy();
+						}
+						table = $('#batchExecPtDetailsTable').DataTable({						    			               
+			                "bProcesing" : true,
+						    "bLenthChange" : false,
+						    "iDisplayLength" : 10,
+						    "bAutoWidth" : false,
+						    "bFilter": false,
+						    "sPaginationType" : "bootstrap"			                
+		                });
+						$('#myPleaseWait').modal('hide');
+						$('#mainForm').show();
+					}  
+          
+				},//end success
+				error : function(err){
+					$('#myPleaseWait').modal('hide');
+					console.log('Error => '+err);
+					showAlertModal('Internal server error!');
+				},
+				beforeSend : function(){
+					$('#nodataDiv').hide();
+					$('#mainForm').hide();
+					$('#myPleaseWait').modal('show');
+				}
+			});
+			
+		}
+		
+		/*]]>*/
+	</script>
+
+</div>
+<!-- /.box -->

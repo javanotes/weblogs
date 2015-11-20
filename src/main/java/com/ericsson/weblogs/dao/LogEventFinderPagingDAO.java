@@ -30,20 +30,21 @@ import javax.annotation.PostConstruct;
 import org.springframework.data.cassandra.mapping.Column;
 import org.springframework.data.cassandra.mapping.PrimaryKeyColumn;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
+import com.datastax.driver.core.querybuilder.Select.Where;
 import com.datastax.driver.core.utils.UUIDs;
 import com.ericsson.weblogs.domain.LogEvent;
 import com.ericsson.weblogs.utils.CommonHelper;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @deprecated - Range queries use ALLOW FILTERING.
- */
+
 @Slf4j@Repository
-public class LogEventFinderDAO extends LogEventDAO{
+public class LogEventFinderPagingDAO extends LogEventDAO{
 
   private String[] pkCols;
   private String timeuuidCol;
@@ -86,21 +87,21 @@ public class LogEventFinderDAO extends LogEventDAO{
   }
   
   
-  public List<LogEvent> findByAppId(final String appId)
- {
-    Select sel = QueryBuilder.select().from(table);
+  public List<LogEvent> findByAppId(final String appId, UUID lastRownum, int limit)
+  {
+    Select sel = QueryBuilder.select().from(table).limit(limit);
     sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
-        .gte(timeuuidCol, UUIDs.startOf(CommonHelper.javaEpochDate().getTime())));
+        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum));
 
     log.debug(">>>>>>>>> Firing select query: " + sel.getQueryString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
    
-  public List<LogEvent> findByAppIdContains(final String appId, String token)
+  public List<LogEvent> findByAppIdContains(final String appId, String token, UUID lastRownum, int limit)
   {
-    Select sel = QueryBuilder.select().from(table);
-    sel.where(QueryBuilder.eq(pkCols[0], appId))/*.and(QueryBuilder
-        .gte(timeuuidCol, UUIDs.startOf(CommonHelper.javaEpoch().getTime())))*/
+    Select sel = QueryBuilder.select().from(table).limit(limit);
+    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
+        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
     .and(QueryBuilder.contains(tokenCol, token));
     
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
@@ -111,11 +112,11 @@ public class LogEventFinderDAO extends LogEventDAO{
   }
   
     
-  public List<LogEvent> findByAppIdBetweenDatesContains(final String appId, String token, final Date fromDate, final Date toDate)
+  public List<LogEvent> findByAppIdBetweenDatesContains(final String appId, String token, final Date fromDate, final Date toDate, UUID lastRownum, int limit)
   {
-    Select sel = QueryBuilder.select().from(table).allowFiltering();
-    sel.where(QueryBuilder.eq(pkCols[0], appId))/*.and(QueryBuilder
-        .gte(timeuuidCol, UUIDs.startOf(CommonHelper.javaEpoch().getTime())))*/
+    Select sel = QueryBuilder.select().from(table).limit(limit);
+    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
+        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
     .and(QueryBuilder.gt(pkCols[2], fromDate))
     .and(QueryBuilder.lt(pkCols[2], toDate))
     .and(QueryBuilder.contains(tokenCol, token));
@@ -126,11 +127,11 @@ public class LogEventFinderDAO extends LogEventDAO{
   }
   
   
-  public List<LogEvent> findByAppIdAfterDateContains(final String appId, String token, final Date fromDate)
+  public List<LogEvent> findByAppIdAfterDateContains(final String appId, String token, final Date fromDate, UUID lastRownum, int limit)
   {
-    Select sel = QueryBuilder.select().from(table).allowFiltering();
-    sel.where(QueryBuilder.eq(pkCols[0], appId))/*.and(QueryBuilder
-        .gte(timeuuidCol, UUIDs.startOf(CommonHelper.javaEpoch().getTime())))*/
+    Select sel = QueryBuilder.select().from(table).limit(limit);
+    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
+        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
     .and(QueryBuilder.gt(pkCols[2], fromDate))
     .and(QueryBuilder.contains(tokenCol, token));
     
@@ -139,11 +140,11 @@ public class LogEventFinderDAO extends LogEventDAO{
     return cassandraOperations.select(sel, LogEvent.class);
   }
     
-  public List<LogEvent> findByAppIdBeforeDateContains(String appId, String token, final Date toDate)
+  public List<LogEvent> findByAppIdBeforeDateContains(String appId, String token, final Date toDate, UUID lastRownum, int limit)
   {
-    Select sel = QueryBuilder.select().from(table).allowFiltering();
-    sel.where(QueryBuilder.eq(pkCols[0], appId))/*.and(QueryBuilder
-        .gte(timeuuidCol, UUIDs.startOf(CommonHelper.javaEpoch().getTime())))*/
+    Select sel = QueryBuilder.select().from(table).limit(limit);
+    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
+        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
     .and(QueryBuilder.lt(pkCols[2], toDate))
     .and(QueryBuilder.contains(tokenCol, token));
         
@@ -152,11 +153,11 @@ public class LogEventFinderDAO extends LogEventDAO{
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
-  public List<LogEvent> findByAppIdBetweenDates(String appId, Date fromDate, Date toDate)
+  public List<LogEvent> findByAppIdBetweenDates(String appId, Date fromDate, Date toDate, UUID lastRownum, int limit)
   {
-    Select sel = QueryBuilder.select().from(table).allowFiltering();
-    sel.where(QueryBuilder.eq(pkCols[0], appId))/*.and(QueryBuilder
-        .gte(timeuuidCol, UUIDs.startOf(CommonHelper.javaEpoch().getTime())))*/
+    Select sel = QueryBuilder.select().from(table).limit(limit);
+    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
+        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
     .and(QueryBuilder.gt(pkCols[2], fromDate))
     .and(QueryBuilder.lt(pkCols[2], toDate));
     
@@ -164,25 +165,51 @@ public class LogEventFinderDAO extends LogEventDAO{
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
-  public List<LogEvent> findByAppIdBeforeDate(String appId, Date toDate)
+  public List<LogEvent> findByAppIdBeforeDate(String appId, Date toDate, UUID lastRownum, int limit)
   {
-    Select sel = QueryBuilder.select().from(table).allowFiltering();
-    sel.where(QueryBuilder.eq(pkCols[0], appId))/*.and(QueryBuilder
-        .gte(timeuuidCol, UUIDs.startOf(CommonHelper.javaEpoch().getTime())))*/
+    Select sel = QueryBuilder.select().from(table).limit(limit);
+    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
+        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
     .and(QueryBuilder.lt(pkCols[2], toDate));
     
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
-  public List<LogEvent> findByAppIdAfterDate(String appId, Date fromDate)
+  public List<LogEvent> findByAppIdAfterDate(String appId, Date fromDate, UUID lastRownum, int limit)
   {
-    Select sel = QueryBuilder.select().from(table).allowFiltering();
-    sel.where(QueryBuilder.eq(pkCols[0], appId))/*.and(QueryBuilder
-        .gte(timeuuidCol, UUIDs.startOf(CommonHelper.javaEpoch().getTime())))*/
+    Select sel = QueryBuilder.select().from(table).limit(limit);
+    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
+        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
     .and(QueryBuilder.gt(pkCols[2], fromDate));
     
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
     return cassandraOperations.select(sel, LogEvent.class);
+  }
+  
+  public long count(final String appId, String token, final Date fromDate, final Date toDate)
+  {
+    Select sel = QueryBuilder.select().countAll().from(table);
+    Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
+    if(fromDate != null || toDate != null){
+      w.and(QueryBuilder
+          .gt(timeuuidCol, UUIDs.endOf(CommonHelper.javaEpochDate().getTime())));
+    }
+    if(fromDate != null){
+      w.and(QueryBuilder.gt(pkCols[2], fromDate));
+    }
+    if(toDate != null){
+      w.and(QueryBuilder.lt(pkCols[2], toDate));
+    }
+      
+    if(StringUtils.hasText(token)){
+      w.and(QueryBuilder.contains(tokenCol, token));
+    }
+      
+    
+    log.debug(">>>>>>>>> Firing count(*) query: "+sel.getQueryString());
+    Row row = cassandraOperations.query(sel).one();
+    return row.getLong(0);
+    
   }
 }

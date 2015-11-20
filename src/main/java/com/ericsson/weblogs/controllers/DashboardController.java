@@ -44,18 +44,19 @@ public class DashboardController {
   @Autowired
   private ILoggingService logService;
   static final String DATE_PICKER_FORMAT = "MM/dd/yyyy";
-  
+
   @RequestMapping(value = "/logsearch")
-  public @ResponseBody QueryResponse fetchLogs(@RequestParam(value = "p_appid") String appId,
+  public @ResponseBody QueryResponse fetchLogs(
+      @RequestParam(value = "p_appid") String appId,
       @RequestParam(value = "p_dtrange") String dateRange,
-      @RequestParam(value = "p_term", required = false) String searchTerm, @RequestParam(value = "p_refresh") boolean autoRefresh, Model model) 
-  {
-    
+      @RequestParam(value = "p_term", required = false) String searchTerm,
+      @RequestParam(value = "p_refresh") boolean autoRefresh, Model model) {
+
     QueryResponse qr = new QueryResponse();
     QueryRequest req = new QueryRequest();
     req.setAppId(appId);
     req.setSearchTerm(searchTerm);
-    //11/19/2015 - 11/19/2015
+    // 11/19/2015 - 11/19/2015
     SimpleDateFormat sdf = new SimpleDateFormat(DATE_PICKER_FORMAT);
     StringTokenizer st = new StringTokenizer(dateRange);
     try {
@@ -66,16 +67,15 @@ public class DashboardController {
       log.error("Date parsing error ", e);
       qr.setError("Internal server error!");
     }
-    log.debug("Got request: "+req);
-    
-    try 
-    {
+    log.debug("Got request: " + req);
+
+    try {
       qr = logService.fetchLogsBetweenDates(req);
     } catch (ServiceException e) {
       log.error("", e);
       qr.setError(e.getMessage());
     }
-    
+
     return qr;
   }
 }

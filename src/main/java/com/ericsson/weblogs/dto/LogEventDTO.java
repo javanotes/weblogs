@@ -21,7 +21,6 @@ package com.ericsson.weblogs.dto;
 
 import java.util.Date;
 
-import com.datastax.driver.core.utils.UUIDs;
 import com.ericsson.weblogs.domain.LogEvent;
 
 import lombok.Data;
@@ -33,7 +32,7 @@ public class LogEventDTO {
 
     this(domain.getId().getAppId(), 
         domain.getLogText(),
-        new Date(UUIDs.unixTimestamp(domain.getId().getTimestamp())));
+        domain.getId().getTimestamp());
   }
 
   public LogEventDTO() {

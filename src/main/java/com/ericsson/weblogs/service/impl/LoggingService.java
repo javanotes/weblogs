@@ -118,6 +118,10 @@ public class LoggingService implements ILoggingService {
     if(request.getFromDate() == null)
       throw new ServiceException("start date missing");
     
+    if(StringUtils.hasText(request.getSearchTerm()))
+    {
+      request.setSearchTerm(request.getSearchTerm().toLowerCase());
+    }
     final List<LogEventDTO> events = new ArrayList<>();
     List<LogEvent> data;
     try {
@@ -156,6 +160,10 @@ public class LoggingService implements ILoggingService {
     if(request.getTillDate() == null)
       throw new ServiceException("end date missing");
     
+    if(StringUtils.hasText(request.getSearchTerm()))
+    {
+      request.setSearchTerm(request.getSearchTerm().toLowerCase());
+    }
     final List<LogEventDTO> events = new ArrayList<>();
     List<LogEvent> data;
     try {
@@ -196,6 +204,10 @@ public class LoggingService implements ILoggingService {
     if(request.getFromDate() == null)
       throw new ServiceException("start date missing");
     
+    if(StringUtils.hasText(request.getSearchTerm()))
+    {
+      request.setSearchTerm(request.getSearchTerm().toLowerCase());
+    }
     final List<LogEventDTO> events = new ArrayList<>();
     List<LogEvent> data;
     try {

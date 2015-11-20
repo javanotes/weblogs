@@ -45,26 +45,36 @@ import com.ericsson.weblogs.lucene.FullTextSearch;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = Application.class)
 @WebAppConfiguration
-public class LogEventDAOTest {
+public class LogEventFinderDAOTest {
   
   @Autowired
   private LogEventRepository repo;
   
   LogEvent event;
+  List<LogEvent> requests;
   @After
   public void delete()
   {
-    
-    try {
-      repo.delete(new BasicMapId().with("appId", appId));
-      repo.delete(new BasicMapId().with("appId", appId+":"));
+    try 
+    {
+      if (event != null) {
+        repo.delete(new BasicMapId().with("appId", appId).with("rownum",
+            event.getId().getRownum()));
+        repo.delete(new BasicMapId().with("appId", appId+":").with("rownum",
+            event.getId().getRownum()));
+      }
+      if(requests != null){
+        for(LogEvent l : requests)
+        {
+          repo.delete(new BasicMapId().with("appId", appId).with("rownum", l.getId().getRownum()));
+          repo.delete(new BasicMapId().with("appId", appId+":").with("rownum", l.getId().getRownum()));
+        }
+      }
       
-      //repo.delete(new BasicMapId().with("appId", appId).with("bucket", bucket));
-      //repo.delete(new BasicMapId().with("appId", appId+":").with("bucket", bucket));
     } catch (Exception e) {
       Assert.fail(e.getMessage());
     }
-    
+        
   }
   
   final int batchSize = 10;
@@ -78,8 +88,8 @@ public class LogEventDAOTest {
   @Test
   public void testFindByAppId()
   {
-        
-    List<LogEvent> requests = new ArrayList<>(batchSize);
+    
+    requests = new ArrayList<>(batchSize);
     for(int i=0; i<batchSize; i++)
     {
       event = new LogEvent();
@@ -115,7 +125,7 @@ public class LogEventDAOTest {
   public void testFindByAppIdWithTermAndDate()
   {
         
-    List<LogEvent> requests = new ArrayList<>(batchSize);
+    requests = new ArrayList<>(batchSize);
     for(int i=0; i<batchSize; i++)
     {
       event = new LogEvent();
@@ -155,7 +165,7 @@ public class LogEventDAOTest {
   public void testFindByAppIdWithTermAndDateBetween()
   {
         
-    List<LogEvent> requests = new ArrayList<>(batchSize);
+    requests = new ArrayList<>(batchSize);
     for(int i=0; i<batchSize; i++)
     {
       event = new LogEvent();
@@ -198,66 +208,4 @@ public class LogEventDAOTest {
     
   }
   
-  @Test
-  public void testInsertLogEvents()
-  {
-        
-    List<LogEvent> requests = new ArrayList<>(batchSize);
-    for(int i=0; i<batchSize; i++)
-    {
-      event = new LogEvent();
-      event.setId(new LogEventKey());
-      event.setLogText("This is some bla blaah bla logging at info level");
-      event.getId().setAppId(appId);
-      
-      requests.add(event);
-    }
-    try {
-      iDao.ingestAsync(requests);
-      
-    } catch (Exception e) {
-      Assert.fail(e.getMessage());
-    }
-  }
-  
-  @Test
-  public void testInsertLogEventsBatch()
-  {
-        
-    List<LogEvent> requests = new ArrayList<>(batchSize);
-    for(int i=0; i<batchSize; i++)
-    {
-      event = new LogEvent();
-      event.setId(new LogEventKey());
-      event.setLogText("This is some bla blaah bla logging at info level");
-      event.getId().setAppId(appId);
-      
-      requests.add(event);
-    }
-    try {
-      iDao.ingestAsyncBatch(requests);
-      
-    } catch (Exception e) {
-      Assert.fail(e.getMessage());
-    }
-  }
-  
-  
-  
-  @Test
-  public void testInsertLogEvent()
-  {
-        
-    event = new LogEvent();
-    event.setId(new LogEventKey());
-    event.setLogText("This is some bla blaah bla logging at info level");
-    event.getId().setAppId(appId);
-    try {
-      iDao.insert(event);
-      
-    } catch (Exception e) {
-      Assert.fail(e.getMessage());
-    }
-  }
-
 }

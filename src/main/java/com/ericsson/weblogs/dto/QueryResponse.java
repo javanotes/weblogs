@@ -22,11 +22,17 @@ package com.ericsson.weblogs.dto;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Data;
 
 @Data
 public class QueryResponse {
 
+  @JsonProperty("iTotalRecords")
+  private long iTotalRecords;
+  @JsonProperty("iTotalDisplayRecords")
+  private long iTotalDisplayRecords;
   private List<LogEventDTO> logs = new ArrayList<>();
   private String error;
   public QueryResponse(List<LogEventDTO> logs) {

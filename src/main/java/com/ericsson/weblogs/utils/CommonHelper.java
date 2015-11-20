@@ -61,7 +61,20 @@ public class CommonHelper {
   public static final String ISO8601_TS_MILLIS = "yyyy-MM-dd HH:mm:ss.SSS";
   public static final String ISO8601_TST_MILLIS_ZONE = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
   public static final String ISO8601_TST_MILLIS = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
+  private static Date epochDate;
   
+  public static Date javaEpochDate()
+  {
+    if (epochDate == null) {
+      try {
+        epochDate = new SimpleDateFormat(ISO8601_TS_MILLIS_ZONE)
+            .parse("1970-01-01 00:00:00.000 GMT");
+      } catch (ParseException e) {
+        throw new RuntimeException(e);
+      } 
+    }
+    return epochDate;
+  }
   private static void handleArraysListsPojosAsField(Class<?> _class, final Object o)
   {
     ReflectionUtils.doWithFields(_class, new ReflectionUtils.FieldCallback() {

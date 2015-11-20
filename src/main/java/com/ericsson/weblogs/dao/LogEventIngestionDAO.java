@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
@@ -40,6 +41,7 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BatchStatement.Type;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.utils.UUIDs;
 import com.ericsson.weblogs.domain.LogEvent;
 
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +66,7 @@ public class LogEventIngestionDAO extends LogEventDAO {
     for(Entry<Integer, Field> entry : allFields.entrySet())
     {
       qry += getColumnForField(entry.getValue()) + ",";
-      args += isFieldTimeuuid(entry.getValue()) ? "now()," : "?,";
+      args += isFieldTimestamp(entry.getValue()) ? "dateof(now())," : "?,";
       
     }
     
@@ -94,14 +96,20 @@ public class LogEventIngestionDAO extends LogEventDAO {
     {
       Field f = entry.getValue();
       
-      if(isFieldTimeuuid(f))
+      if(isFieldTimestamp(f))
         continue;
-      
+              
       try 
       {
-        
-        o = getIfEmbedded(event, f);
-        o = FieldUtils.getFieldValue(o, f.getName());
+        if(isFieldTimeuuid(f)){
+          o = UUIDs.timeBased();
+          event.getId().setRownum((UUID) o);
+        }
+        else
+        {
+          o = getIfEmbedded(event, f);
+          o = FieldUtils.getFieldValue(o, f.getName());
+        }
         param.add(o);
         
       } catch (Exception e) {

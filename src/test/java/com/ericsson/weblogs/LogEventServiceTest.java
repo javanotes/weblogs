@@ -153,4 +153,68 @@ public class LogEventServiceTest {
     }
     
   }
+  
+  @Test
+  public void testFindLogEventsWithTerm()
+  {
+    testInsertLogEvents();
+    
+    //insert with different terms
+    List<LogRequest> requests = new ArrayList<>(batchSize);
+    LogRequest l;
+    for(int i=0; i<batchSize; i++)
+    {
+      
+      l = new LogRequest();
+      l.setLogText("This is some bla blaah bla logging at info level: "+(i % 2 == 0 ? "Lorem" : "Ipsum"));
+      l.setApplicationId(appId);
+      
+      requests.add(l);
+    }
+    try {
+      logService.ingestLoggingRequests(requests);
+      
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+    QueryRequest req = new QueryRequest();
+    req.setAppId(appId);
+    
+    Calendar yesterday = GregorianCalendar.getInstance();
+    yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
+    req.setFromDate(yesterday.getTime());
+    
+    Calendar tomorrow = GregorianCalendar.getInstance();
+    tomorrow.set(Calendar.DATE, yesterday.get(Calendar.DATE)+1);
+    req.setTillDate(tomorrow.getTime());
+    
+    QueryResponse resp;
+    try 
+    {
+      
+      req.setAppId("doNotMatch");
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      req.setAppId(appId);
+            
+      req.setSearchTerm("Lorem");
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      
+      req.setSearchTerm("Ipsum");
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      
+      
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+  }
 }

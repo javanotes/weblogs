@@ -20,6 +20,7 @@
 package com.ericsson.weblogs.dao;
 
 import java.lang.reflect.Field;
+import java.util.Date;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -56,6 +57,9 @@ abstract class LogEventDAO {
 
   protected static boolean isFieldTimeuuid(Field f) {
     return f.getType() == UUID.class;
+  }
+  protected static boolean isFieldTimestamp(Field f) {
+    return f.getType() == Date.class;
   }
 
   protected final TreeMap<Integer, Field> pkFields = new TreeMap<>();

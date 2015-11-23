@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
@@ -41,7 +40,6 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BatchStatement.Type;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.utils.UUIDs;
 import com.ericsson.weblogs.domain.LogEvent;
 
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +55,7 @@ public class LogEventIngestionDAO extends LogEventDAO {
     cqlIngestStmt.setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.ONE);
     log.info(">>>>>>> Prepared ingestion query: "+cqlIngest);
   }
-  String prepareInsertQuery()
+  private String prepareInsertQuery()
   {
     
     String qry = "insert into " + table + "( ";
@@ -66,8 +64,11 @@ public class LogEventIngestionDAO extends LogEventDAO {
     for(Entry<Integer, Field> entry : allFields.entrySet())
     {
       qry += getColumnForField(entry.getValue()) + ",";
-      args += isFieldTimestamp(entry.getValue()) ? "dateof(now())," : "?,";
       
+      // for auto generated timestamp/timeuuid primary keys
+      args += isFieldTimestamp(entry.getValue()) ? "dateof(now()),"
+          : isFieldTimeuuid(entry.getValue()) ? "now()," : "?,";
+
     }
     
     if(qry.endsWith(","))
@@ -96,20 +97,13 @@ public class LogEventIngestionDAO extends LogEventDAO {
     {
       Field f = entry.getValue();
       
-      if(isFieldTimestamp(f))
+      if(isFieldTimestamp(f) || isFieldTimeuuid(f))//auto generated at server
         continue;
               
       try 
       {
-        if(isFieldTimeuuid(f)){
-          o = UUIDs.timeBased();
-          event.getId().setRownum((UUID) o);
-        }
-        else
-        {
-          o = getIfEmbedded(event, f);
-          o = FieldUtils.getFieldValue(o, f.getName());
-        }
+        o = getIfEmbedded(event, f);
+        o = FieldUtils.getFieldValue(o, f.getName());
         param.add(o);
         
       } catch (Exception e) {
@@ -123,7 +117,6 @@ public class LogEventIngestionDAO extends LogEventDAO {
    * 
    * This is an asynchronous operation for saving as entities. We do not explicitly create the CQL here. 
    * <b>Note:</b> this method will NOT use server generated timeuuid using now() function.
-   * @deprecated - Use {@link #ingestAsync(List)} instead.
    * @param entities
    * @throws DataAccessException 
    * 
@@ -263,7 +256,7 @@ public class LogEventIngestionDAO extends LogEventDAO {
   }
     
   /**
-   * Inserts a single log event
+   * Inserts a single log event using a prepared statement synchronously. This method will use server generated timeuuid using now() function.
    * @param event
    * @throws DataAccessException
    */

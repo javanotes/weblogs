@@ -41,6 +41,10 @@ import com.ericsson.weblogs.domain.LogEventKey;
 
 abstract class LogEventDAO {
 
+  final static String MAXTIMEUUID = "maxTimeuuid";
+  final static String MINTIMEUUID = "minTimeuuid";
+  
+  
   @Autowired
   protected CassandraOperations cassandraOperations;
   

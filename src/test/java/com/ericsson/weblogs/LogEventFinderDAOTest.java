@@ -41,7 +41,7 @@ import com.ericsson.weblogs.dao.LogEventRepository;
 import com.ericsson.weblogs.domain.LogEvent;
 import com.ericsson.weblogs.domain.LogEventKey;
 import com.ericsson.weblogs.lucene.FullTextSearch;
-
+@Deprecated
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = Application.class)
 @WebAppConfiguration
@@ -58,16 +58,16 @@ public class LogEventFinderDAOTest {
     try 
     {
       if (event != null) {
-        repo.delete(new BasicMapId().with("appId", appId).with("rownum",
-            event.getId().getRownum()));
-        repo.delete(new BasicMapId().with("appId", appId+":").with("rownum",
-            event.getId().getRownum()));
+        repo.delete(new BasicMapId().with("appId", appId)/*.with("rownum",
+            event.getId().getRownum())*/);
+        repo.delete(new BasicMapId().with("appId", appId+":")/*.with("rownum",
+            event.getId().getRownum())*/);
       }
       if(requests != null){
         for(LogEvent l : requests)
         {
-          repo.delete(new BasicMapId().with("appId", appId).with("rownum", l.getId().getRownum()));
-          repo.delete(new BasicMapId().with("appId", appId+":").with("rownum", l.getId().getRownum()));
+          repo.delete(new BasicMapId().with("appId", appId)/*.with("rownum", l.getId().getRownum())*/);
+          repo.delete(new BasicMapId().with("appId", appId+":")/*.with("rownum", l.getId().getRownum())*/);
         }
       }
       

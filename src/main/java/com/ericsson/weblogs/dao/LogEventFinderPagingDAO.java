@@ -36,7 +36,6 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Select.Where;
-import com.datastax.driver.core.utils.UUIDs;
 import com.ericsson.weblogs.domain.LogEvent;
 import com.ericsson.weblogs.utils.CommonHelper;
 
@@ -58,6 +57,10 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     for(Field f : pkFields.values())
     {
       pkCols[i++] = f.getAnnotation(PrimaryKeyColumn.class).name();
+      if(f.getType() == UUID.class)
+      {
+        timeuuidCol = pkCols[i-1];
+      }
     }
     
     StringBuilder s = new  StringBuilder("select ");
@@ -68,10 +71,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
           : f.getAnnotation(Column.class).value();
           
       s.append(c).append(",");
-      if(f.getType() == UUID.class)
-      {
-        timeuuidCol = f.getAnnotation(PrimaryKeyColumn.class).name();
-      }
+      
       if(Set.class.isAssignableFrom(f.getType()))
       {
         tokenCol = f.getAnnotation(Column.class).value();
@@ -87,102 +87,172 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
   }
   
   
-  public List<LogEvent> findByAppId(final String appId, UUID lastRownum, int limit)
+  public List<LogEvent> findByAppId(final String appId, LogEvent lastRow, int limit, boolean isPrevPaging)
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
-    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
-        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum));
-
+    Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
+    if (lastRow != null) {
+      w.and(isPrevPaging
+          ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
+          : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
+    }  
+    
     log.debug(">>>>>>>>> Firing select query: " + sel.getQueryString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
    
-  public List<LogEvent> findByAppIdContains(final String appId, String token, UUID lastRownum, int limit)
+  public List<LogEvent> findByAppIdContains(final String appId, String token, LogEvent lastRow, int limit, boolean isPrevPaging)
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
-    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
-        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
+    Where w = sel.where(QueryBuilder.eq(pkCols[0], appId))
     .and(QueryBuilder.contains(tokenCol, token));
-    
+    if(lastRow != null)
+    {
+      w.and(isPrevPaging
+          ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
+          : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
+    }
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
     
     return cassandraOperations.select(sel, LogEvent.class);
     
     
   }
-  
+  /*
+   * TODO: Not sure why needing to use long in maxtimeuuid and String in mintimeuuid ???!!!
+   */
     
-  public List<LogEvent> findByAppIdBetweenDatesContains(final String appId, String token, final Date fromDate, final Date toDate, UUID lastRownum, int limit)
+  public List<LogEvent> findByAppIdBetweenDatesContains(final String appId, String token, LogEvent lastRow, final Date fromDate, final Date toDate, int limit, boolean isPrevPaging)
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
-    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
-        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
-    .and(QueryBuilder.gt(pkCols[2], fromDate))
-    .and(QueryBuilder.lt(pkCols[2], toDate))
+    Where w = sel.where(QueryBuilder.eq(pkCols[0], appId))
+   
     .and(QueryBuilder.contains(tokenCol, token));
-        
+    if(lastRow != null)
+    {
+      w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
+      .and(isPrevPaging
+          ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
+          : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
+    }  
+    else
+    {
+      w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
+      .and(QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)));
+    }
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
     
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
   
-  public List<LogEvent> findByAppIdAfterDateContains(final String appId, String token, final Date fromDate, UUID lastRownum, int limit)
+  public List<LogEvent> findByAppIdAfterDateContains(final String appId, String token, LogEvent lastRow, final Date fromDate, int limit, boolean isPrevPaging)
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
-    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
-        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
-    .and(QueryBuilder.gt(pkCols[2], fromDate))
+    Where w = sel.where(QueryBuilder.eq(pkCols[0], appId))
     .and(QueryBuilder.contains(tokenCol, token));
-    
+    if(lastRow != null)
+    {
+      w.and(QueryBuilder.gt(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, fromDate)))
+      .and(isPrevPaging
+          ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
+          : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
+    }  
+    else
+    {
+      w.and(QueryBuilder.gt(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, fromDate)));
+    }
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
     
     return cassandraOperations.select(sel, LogEvent.class);
   }
     
-  public List<LogEvent> findByAppIdBeforeDateContains(String appId, String token, final Date toDate, UUID lastRownum, int limit)
+  public List<LogEvent> findByAppIdBeforeDateContains(String appId, String token, LogEvent lastRow, final Date toDate, int limit, boolean isPrevPaging)
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
-    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
-        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
-    .and(QueryBuilder.lt(pkCols[2], toDate))
+    Where w = sel.where(QueryBuilder.eq(pkCols[0], appId))
     .and(QueryBuilder.contains(tokenCol, token));
-        
+    if(lastRow != null)
+    {
+      w
+      .and(isPrevPaging
+          ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
+          : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
+    }  
+    else
+    {
+      w
+      .and(QueryBuilder.lt(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(toDate))));
+    }    
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
     
     return cassandraOperations.select(sel, LogEvent.class);
   }
-  
-  public List<LogEvent> findByAppIdBetweenDates(String appId, Date fromDate, Date toDate, UUID lastRownum, int limit)
+  /**
+   * both dates inclusive
+   * @param appId
+   * @param lastRow
+   * @param fromDate
+   * @param toDate
+   * @param limit
+   * @param isPrevPaging
+   * @return
+   */
+  public List<LogEvent> findByAppIdBetweenDates(String appId, LogEvent lastRow, Date fromDate, Date toDate, int limit, boolean isPrevPaging)
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
-    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
-        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
-    .and(QueryBuilder.gt(pkCols[2], fromDate))
-    .and(QueryBuilder.lt(pkCols[2], toDate));
-    
+    Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
+    if(lastRow != null)
+    {
+      w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
+      .and(isPrevPaging
+          ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
+          : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
+    }  
+    else
+    {
+      w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
+      .and(QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)));
+    }
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
-  public List<LogEvent> findByAppIdBeforeDate(String appId, Date toDate, UUID lastRownum, int limit)
+  public List<LogEvent> findByAppIdBeforeDate(String appId, LogEvent lastRow, Date toDate, int limit, boolean isPrevPaging)
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
-    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
-        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
-    .and(QueryBuilder.lt(pkCols[2], toDate));
-    
+    Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
+    if(lastRow != null)
+    {
+      w
+      .and(isPrevPaging
+          ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
+          : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
+    }  
+    else
+    {
+      w
+      .and(QueryBuilder.lt(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(toDate))));
+    }
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
-  public List<LogEvent> findByAppIdAfterDate(String appId, Date fromDate, UUID lastRownum, int limit)
+  public List<LogEvent> findByAppIdAfterDate(String appId, LogEvent lastRow, Date fromDate, int limit, boolean isPrevPaging)
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
-    sel.where(QueryBuilder.eq(pkCols[0], appId)).and(QueryBuilder
-        .gt(timeuuidCol, lastRownum == null ? UUIDs.endOf(CommonHelper.javaEpochDate().getTime()) : lastRownum))
-    .and(QueryBuilder.gt(pkCols[2], fromDate));
-    
+    Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
+    if(lastRow != null)
+    {
+      w.and(QueryBuilder.gt(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, fromDate)))
+      .and(isPrevPaging
+          ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
+          : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
+    }  
+    else
+    {
+      w.and(QueryBuilder.gt(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, fromDate)));
+    }
     log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
@@ -191,15 +261,13 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
   {
     Select sel = QueryBuilder.select().countAll().from(table);
     Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
-    if(fromDate != null || toDate != null){
-      w.and(QueryBuilder
-          .gt(timeuuidCol, UUIDs.endOf(CommonHelper.javaEpochDate().getTime())));
-    }
-    if(fromDate != null){
-      w.and(QueryBuilder.gt(pkCols[2], fromDate));
+    if (fromDate != null) {
+      w.and(
+          QueryBuilder.gt(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, fromDate)));
     }
     if(toDate != null){
-      w.and(QueryBuilder.lt(pkCols[2], toDate));
+      w.and(
+          QueryBuilder.lt(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(toDate))));
     }
       
     if(StringUtils.hasText(token)){

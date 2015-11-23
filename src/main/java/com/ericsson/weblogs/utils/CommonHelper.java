@@ -57,6 +57,8 @@ public class CommonHelper {
       "yyyy-MM-ddZ"
   };
   
+  public static final String ISO8601_DATE_ZONE = "yyyy-MM-ddZ";
+  public static final String ISO8601_DATETIME_ZONE = "yyyy-MM-dd HH:mm:ssZ";
   public static final String ISO8601_TS_MILLIS_ZONE = "yyyy-MM-dd HH:mm:ss.SSSZ";
   public static final String ISO8601_TS_MILLIS = "yyyy-MM-dd HH:mm:ss.SSS";
   public static final String ISO8601_TST_MILLIS_ZONE = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
@@ -257,7 +259,7 @@ public class CommonHelper {
   {
     SimpleDateFormat parser = new SimpleDateFormat();
     parser.setLenient(false);
-    parser.applyPattern("yyyy-MM-ddZ");
+    parser.applyPattern(ISO8601_DATE_ZONE);
     return parser.format(date);
   }
   /**
@@ -269,7 +271,7 @@ public class CommonHelper {
   {
     SimpleDateFormat parser = new SimpleDateFormat();
     parser.setLenient(false);
-    parser.applyPattern("yyyy-MM-dd HH:mmZ");
+    parser.applyPattern(ISO8601_DATETIME_ZONE);
     return parser.format(date);
   }
 }

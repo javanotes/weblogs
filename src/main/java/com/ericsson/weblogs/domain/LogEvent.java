@@ -30,13 +30,17 @@ import org.springframework.data.cassandra.mapping.Table;
 
 import com.ericsson.weblogs.dto.LogRequest;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 @Table(value = "data_points")
-@Data
 public class LogEvent implements Serializable{
 
   
+  @Override
+  public String toString() {
+    return "LogEvent [id=" + id + "]";
+  }
   public LogEvent()
   {
     
@@ -52,12 +56,12 @@ public class LogEvent implements Serializable{
    * 
    */
   private static final long serialVersionUID = 6486945252184335817L;
-  @PrimaryKey
+  @PrimaryKey@Getter@Setter
   private LogEventKey id;
-  @Column(value = "log_text")
+  @Column(value = "log_text")@Getter@Setter
   private String logText;
   @Column(value = "tokens")
-  @Indexed
+  @Indexed@Getter@Setter
   private Set<String> tokens = new HashSet<>();
   @Override
   public boolean equals(Object obj) {

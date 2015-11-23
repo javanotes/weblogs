@@ -21,6 +21,7 @@ package com.ericsson.weblogs;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 
@@ -34,6 +35,7 @@ import org.springframework.data.cassandra.repository.support.BasicMapId;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.ericsson.weblogs.dao.LogEventFinderPagingDAO;
 import com.ericsson.weblogs.dao.LogEventIngestionDAO;
 import com.ericsson.weblogs.dao.LogEventRepository;
@@ -57,16 +59,16 @@ public class LogEventFinderPagingDAOTest {
     try 
     {
       if (event != null) {
-        repo.delete(new BasicMapId().with("appId", appId).with("rownum",
-            event.getId().getRownum()));
-        repo.delete(new BasicMapId().with("appId", appId+":").with("rownum",
-            event.getId().getRownum()));
+        repo.delete(new BasicMapId().with("appId", appId)/*.with("rownum",
+            event.getId().getRownum())*/);
+        repo.delete(new BasicMapId().with("appId", appId+":")/*.with("rownum",
+            event.getId().getRownum())*/);
       }
       if(requests != null){
         for(LogEvent l : requests)
         {
-          repo.delete(new BasicMapId().with("appId", appId).with("rownum", l.getId().getRownum()));
-          repo.delete(new BasicMapId().with("appId", appId+":").with("rownum", l.getId().getRownum()));
+          repo.delete(new BasicMapId().with("appId", appId)/*.with("rownum", l.getId().getRownum())*/);
+          repo.delete(new BasicMapId().with("appId", appId+":")/*.with("rownum", l.getId().getRownum())*/);
         }
       }
       
@@ -101,13 +103,13 @@ public class LogEventFinderPagingDAOTest {
     {
       iDao.ingestAsync(requests);
       
-      List<LogEvent> page1 = fDao.findByAppId(appId, null, batchSize/2);
+      List<LogEvent> page1 = fDao.findByAppId(appId, null, batchSize/2, false);
       Assert.assertNotNull("Found null", page1);
       Assert.assertEquals("Incorrect resultset size 1st page.", batchSize/2, page1.size());
       
       LogEvent last = page1.get(page1.size()-1);
       
-      List<LogEvent> page2 = fDao.findByAppId(appId, last.getId().getRownum(), batchSize/2);
+      List<LogEvent> page2 = fDao.findByAppId(appId, last, batchSize/2, false);
       Assert.assertNotNull("Found null", page2);
       Assert.assertEquals("Incorrect resultset size 2nd page. ", batchSize/2, page2.size());
       
@@ -115,18 +117,208 @@ public class LogEventFinderPagingDAOTest {
       {
         Assert.assertFalse("Duplicate data in pages ", page2.contains(l));
       }
+      for(LogEvent l : page2)
+      {
+        Assert.assertFalse("Duplicate data in pages ", page1.contains(l));
+      }
+      
+      last = page2.get(0);
+      
+      List<LogEvent> page11 = fDao.findByAppId(appId, last, batchSize/2, true);
+      Assert.assertNotNull("Found null", page11);
+      Assert.assertEquals("Incorrect resultset size prev page. ", batchSize/2, page11.size());
+      
+      for(LogEvent l : page1)
+      {
+        Assert.assertTrue("Prev page browsing incorrect ", page11.contains(l));
+      }
+      for(LogEvent l : page11)
+      {
+        Assert.assertTrue("Prev page browsing incorrect ", page1.contains(l));
+      }
       
     } catch (Exception e) {
       Assert.fail(e.getMessage());
     }
     
   }
-  //TODO: Failing 
-  /*
-   * 
-   Clustering column "event_ts" cannot be restricted (preceding column "row_id" is restricted by a non-EQ relation); 
-   
-   */
+  
+  @Test
+  public void testFindByAppIdAfterDate()
+  {
+    
+    requests = new ArrayList<>(batchSize);
+    Calendar tomorrow = GregorianCalendar.getInstance();
+    
+    for(int i=0; i<batchSize; i++)
+    {
+      event = new LogEvent();
+      event.setId(new LogEventKey());
+      event.setLogText("This is some bla blaah bla logging at info level");
+      event.getId().setAppId(appId);
+      tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)+1);
+      event.getId().setTimestamp(UUIDs.endOf(tomorrow.getTimeInMillis()));
+            
+      requests.add(event);
+    }
+    try 
+    {
+      iDao.ingestEntitiesAsync(requests);
+      
+      Calendar after5Days = GregorianCalendar.getInstance();
+      after5Days.set(Calendar.DATE, after5Days.get(Calendar.DATE)+5);
+      
+      List<LogEvent> page1 = fDao.findByAppIdAfterDate(appId, null, after5Days.getTime(), batchSize/2, false);
+      Assert.assertNotNull("Found null", page1);
+      Assert.assertEquals("Incorrect resultset size 1st page.", batchSize/2, page1.size());
+      
+      LogEvent last = page1.get(page1.size()-1);
+      
+      Calendar lastDateCalendar = new GregorianCalendar();
+      lastDateCalendar.setTimeInMillis(UUIDs.unixTimestamp(last.getId().getTimestamp()));
+      
+      Assert.assertEquals(after5Days.get(Calendar.DAY_OF_YEAR)+1, lastDateCalendar.get(Calendar.DAY_OF_YEAR));
+      
+      List<LogEvent> page2 = fDao.findByAppIdAfterDate(appId, last, after5Days.getTime(), batchSize/2, false);
+      Assert.assertNotNull("Found null", page2);
+      Assert.assertTrue("Should be empty 2nd page. ", page2.isEmpty());
+           
+      
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+  }
+  
+  @Test
+  public void testFindByAppIdBeforeDate()
+  {
+    
+    requests = new ArrayList<>(batchSize);
+    Calendar tomorrow = GregorianCalendar.getInstance();
+    
+    for(int i=0; i<batchSize; i++)
+    {
+      event = new LogEvent();
+      event.setId(new LogEventKey());
+      event.setLogText("This is some bla blaah bla logging at info level");
+      event.getId().setAppId(appId);
+      tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)-1);
+      event.getId().setTimestamp(UUIDs.endOf(tomorrow.getTimeInMillis()));
+            
+      requests.add(event);
+    }
+    try 
+    {
+      iDao.ingestEntitiesAsync(requests);
+      
+      Calendar before5Days = GregorianCalendar.getInstance();
+      before5Days.set(Calendar.DATE, before5Days.get(Calendar.DATE)-5);
+      
+      List<LogEvent> page1 = fDao.findByAppIdBeforeDate(appId, null, before5Days.getTime(), batchSize/2, false);
+      Assert.assertNotNull("Found null", page1);
+      Assert.assertEquals("Incorrect resultset size 1st page.", batchSize/2, page1.size());
+      
+      LogEvent last = page1.get(page1.size()-1);
+      
+      Calendar lastDateCalendar = new GregorianCalendar();
+      lastDateCalendar.setTimeInMillis(UUIDs.unixTimestamp(last.getId().getTimestamp()));
+      
+      Assert.assertEquals(before5Days.get(Calendar.DAY_OF_YEAR)-5, lastDateCalendar.get(Calendar.DAY_OF_YEAR));
+      
+      List<LogEvent> page2 = fDao.findByAppIdBeforeDate(appId, last, before5Days.getTime(), batchSize/2, false);
+      Assert.assertNotNull("Found null", page2);
+      Assert.assertTrue("Should be empty 2nd page. ", page2.isEmpty());
+           
+      
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+  }
+  
+  @Test
+  public void testFindByAppIdBetweenDates()
+  {
+    
+    requests = new ArrayList<>(batchSize);
+    Calendar tomorrow = GregorianCalendar.getInstance();
+    
+    for(int i=0; i<batchSize; i++)
+    {
+      event = new LogEvent();
+      event.setId(new LogEventKey());
+      event.setLogText("This is some bla blaah bla logging at info level");
+      event.getId().setAppId(appId);
+      tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)-1);
+      event.getId().setTimestamp(UUIDs.endOf(tomorrow.getTimeInMillis()));
+            
+      requests.add(event);
+    }
+    tomorrow.setTime(new Date());
+    
+    for(int i=0; i<batchSize; i++)
+    {
+      event = new LogEvent();
+      event.setId(new LogEventKey());
+      event.setLogText("This is some bla blaah bla logging at info level");
+      event.getId().setAppId(appId);
+      tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)+1);
+      event.getId().setTimestamp(UUIDs.endOf(tomorrow.getTimeInMillis()));
+            
+      requests.add(event);
+    }
+    try 
+    {
+      iDao.ingestEntitiesAsync(requests);
+      
+      Calendar before5Days = GregorianCalendar.getInstance();
+      before5Days.set(Calendar.DATE, before5Days.get(Calendar.DATE)-5);
+      
+      Calendar after5Days = GregorianCalendar.getInstance();
+      after5Days.set(Calendar.DATE, after5Days.get(Calendar.DATE)+5);
+      
+      List<LogEvent> page1 = fDao.findByAppIdBetweenDates(appId, null, before5Days.getTime(), after5Days.getTime(), batchSize/2, false);
+      Assert.assertNotNull("Found null", page1);
+      Assert.assertEquals("Incorrect resultset size 1st page.", batchSize/2, page1.size());
+      
+      LogEvent last = page1.get(page1.size()-1);
+      
+      Calendar lastDateCalendar = new GregorianCalendar();
+      lastDateCalendar.setTimeInMillis(UUIDs.unixTimestamp(last.getId().getTimestamp()));
+      
+      Calendar today = new GregorianCalendar();
+      Assert.assertEquals(today.get(Calendar.DAY_OF_YEAR)+1, lastDateCalendar.get(Calendar.DAY_OF_YEAR));
+      
+      List<LogEvent> page2 = fDao.findByAppIdBetweenDates(appId, last, before5Days.getTime(), after5Days.getTime(), batchSize/2, false);
+      Assert.assertNotNull("Found null", page2);
+      Assert.assertEquals("Incorrect resultset size 1st page.", batchSize/2, page2.size());
+           
+      for(LogEvent l : page1)
+      {
+        Assert.assertFalse("Duplicate data in pages ", page2.contains(l));
+      }
+      for(LogEvent l : page2)
+      {
+        Assert.assertFalse("Duplicate data in pages ", page1.contains(l));
+      }
+      
+      last = page2.get(page2.size()-1);
+      lastDateCalendar = new GregorianCalendar();
+      lastDateCalendar.setTimeInMillis(UUIDs.unixTimestamp(last.getId().getTimestamp()));
+      
+      Assert.assertEquals(today.get(Calendar.DAY_OF_YEAR)-5, lastDateCalendar.get(Calendar.DAY_OF_YEAR));
+      
+      page2 = fDao.findByAppIdBetweenDates(appId, last, before5Days.getTime(), after5Days.getTime(), batchSize/2, false);
+      Assert.assertNotNull("Found null", page2);
+      Assert.assertTrue("Should be empty 3rd page. ", page2.isEmpty());
+      
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+  }
+  
   @Test
   public void testCount()
   {
@@ -154,7 +346,7 @@ public class LogEventFinderPagingDAOTest {
       yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
       
       Calendar tomorrow = GregorianCalendar.getInstance();
-      tomorrow.set(Calendar.DATE, yesterday.get(Calendar.DATE)+1);
+      tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)+1);
       
       count = fDao.count(appId, "", tomorrow.getTime(), null);
       Assert.assertEquals("Incorrect count", 0, count);

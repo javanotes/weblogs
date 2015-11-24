@@ -25,7 +25,18 @@ import lombok.Data;
 
 @Data
 public class QueryRequest {
-
+  /**
+   * Page size
+   */
+  private int fetchSize;
+  /**
+   * Set true if fetching prev page
+   */
+  private boolean isFetchPrev;
+  /**
+   * Current page reference timeuuid. Last row for 'next', first row for 'prev'
+   */
+  private String fetchMarkUUID;
   private String appId,searchTerm;
   private Date fromDate, tillDate;
 }

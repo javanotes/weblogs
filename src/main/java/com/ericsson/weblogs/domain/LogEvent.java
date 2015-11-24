@@ -22,6 +22,7 @@ package com.ericsson.weblogs.domain;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import org.springframework.data.cassandra.mapping.Column;
 import org.springframework.data.cassandra.mapping.Indexed;
@@ -44,6 +45,12 @@ public class LogEvent implements Serializable{
   public LogEvent()
   {
     
+  }
+  public LogEvent(UUID timestamp)
+  {
+    this();
+    setId(new LogEventKey());
+    getId().setTimestamp(timestamp);
   }
   public LogEvent(LogRequest req)
   {

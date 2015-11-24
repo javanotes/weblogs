@@ -41,7 +41,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.ericsson.weblogs.controllers.WebServicesController;
+import com.ericsson.weblogs.controllers.IngestionController;
 import com.ericsson.weblogs.dao.LogEventRepository;
 import com.ericsson.weblogs.dto.LogIngestionStatus;
 import com.ericsson.weblogs.dto.LogRequest;
@@ -93,7 +93,7 @@ public class IngestionControllerTest {
     try 
     {
       String json = new ObjectMapper().writer().writeValueAsString(event);
-      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/services/ingest").contentType(MediaType.APPLICATION_JSON).content(json))
+      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/api/ingest").contentType(MediaType.APPLICATION_JSON).content(json))
       .andDo(MockMvcResultHandlers.print())
       .andReturn();
       
@@ -128,7 +128,7 @@ public class IngestionControllerTest {
     try 
     {
       String json = new ObjectMapper().writer().writeValueAsString(new LogRequests(requests));
-      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/services/ingestbatch").contentType(MediaType.APPLICATION_JSON).content(json))
+      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/api/ingestbatch").contentType(MediaType.APPLICATION_JSON).content(json))
       .andDo(MockMvcResultHandlers.print())
       .andReturn();
       
@@ -162,14 +162,14 @@ public class IngestionControllerTest {
     try 
     {
       String json = new ObjectMapper().writer().writeValueAsString(new LogRequests(requests));
-      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/services/ingestbatch").contentType(MediaType.APPLICATION_JSON).content(json))
+      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/api/ingestbatch").contentType(MediaType.APPLICATION_JSON).content(json))
       .andDo(MockMvcResultHandlers.print())
       .andReturn();
       
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertTrue(lr.getMessage().startsWith(WebServicesController.RESP_MSG_VALIDATION_ERR));
+      Assert.assertTrue(lr.getMessage().startsWith(IngestionController.RESP_MSG_VALIDATION_ERR));
       
     } catch (Exception e) {
       e.printStackTrace();
@@ -187,14 +187,14 @@ public class IngestionControllerTest {
     try 
     {
       String json = new ObjectMapper().writer().writeValueAsString(event);
-      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/services/ingest").contentType(MediaType.APPLICATION_JSON).content(json))
+      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/api/ingest").contentType(MediaType.APPLICATION_JSON).content(json))
       .andDo(MockMvcResultHandlers.print())
       .andReturn();
       
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertTrue(lr.getMessage().startsWith(WebServicesController.RESP_MSG_VALIDATION_ERR));
+      Assert.assertTrue(lr.getMessage().startsWith(IngestionController.RESP_MSG_VALIDATION_ERR));
       
     } catch (Exception e) {
       e.printStackTrace();
@@ -218,14 +218,14 @@ public class IngestionControllerTest {
     try 
     {
       String json = new ObjectMapper().writer().writeValueAsString(requests);
-      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/services/ingestbatch").contentType(MediaType.APPLICATION_JSON).content(json))
+      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/api/ingestbatch").contentType(MediaType.APPLICATION_JSON).content(json))
       .andDo(MockMvcResultHandlers.print())
       .andReturn();
       
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertEquals(WebServicesController.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
+      Assert.assertEquals(IngestionController.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
       
     } catch (Exception e) {
       e.printStackTrace();
@@ -239,14 +239,14 @@ public class IngestionControllerTest {
     try 
     {
       String json = new ObjectMapper().writer().writeValueAsString("This is a log");
-      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/services/ingest").contentType(MediaType.APPLICATION_JSON).content(json))
+      MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/api/ingest").contentType(MediaType.APPLICATION_JSON).content(json))
       .andDo(MockMvcResultHandlers.print())
       .andReturn();
       
       Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
       LogResponse lr = new ObjectMapper().reader(LogResponse.class).readValue(result.getResponse().getContentAsString());
       Assert.assertEquals(LogIngestionStatus.REJECTED, lr.getStatus());
-      Assert.assertEquals(WebServicesController.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
+      Assert.assertEquals(IngestionController.RESP_MSG_INV_JSON_FORMAT, lr.getMessage());
       
     } catch (Exception e) {
       e.printStackTrace();

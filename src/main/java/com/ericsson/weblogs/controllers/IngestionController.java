@@ -61,7 +61,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Controller()
 @RequestMapping("/api")
-public class WebServicesController {
+public class IngestionController {
 
   public static final String RESP_MSG_INV_JSON_FORMAT = "Unrecognized JSON format.";
   public static final String RESP_MSG_SUCCESS = "Logged successfully.";

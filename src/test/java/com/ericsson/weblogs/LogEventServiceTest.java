@@ -107,11 +107,13 @@ public class LogEventServiceTest {
     }
   }
   @Test
-  public void testFindLogEvents()
+  public void testFindLogEventsBetweenDates()
   {
     testInsertLogEvents();
+    
     QueryRequest req = new QueryRequest();
     req.setAppId(appId);
+    req.setFetchSize(batchSize/2);
     
     Calendar yesterday = GregorianCalendar.getInstance();
     yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
@@ -124,29 +126,72 @@ public class LogEventServiceTest {
     QueryResponse resp;
     try 
     {
+      //next pages
+      req.setFetchPrev(false);
+      
+      //page 1
       resp = logService.fetchLogsBetweenDates(req);
       Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
       Assert.assertFalse(resp.getLogs().isEmpty());
-      Assert.assertEquals(batchSize, resp.getLogs().size());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      Assert.assertEquals(batchSize, resp.getITotalRecords());
+      Assert.assertEquals(batchSize, resp.getITotalDisplayRecords());
+      
+      //page 2
+      req.setFetchMarkUUID(resp.getLastRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      Assert.assertEquals(batchSize, resp.getITotalRecords());
+      Assert.assertEquals(batchSize, resp.getITotalDisplayRecords());
+      
+      String page2FirstRow = resp.getFirstRowUUID();
+      
+      //page 3 (not exists)
+      req.setFetchMarkUUID(resp.getLastRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      Assert.assertEquals(0, resp.getLogs().size());
+      Assert.assertEquals(batchSize, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
+      
+      //prev pages
+      req.setFetchPrev(true);
+      
+      //page 1
+      req.setFetchMarkUUID(page2FirstRow);
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      Assert.assertEquals(batchSize, resp.getITotalRecords());
+      Assert.assertEquals(batchSize, resp.getITotalDisplayRecords());
+      
+      //page 0 does not exist
+      page2FirstRow = resp.getFirstRowUUID();
+      req.setFetchMarkUUID(page2FirstRow);
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      Assert.assertEquals(0, resp.getLogs().size());
+      Assert.assertEquals(batchSize, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
       
       req.setAppId("doNotMatch");
       resp = logService.fetchLogsBetweenDates(req);
       Assert.assertNotNull(resp);
       Assert.assertTrue(resp.getLogs().isEmpty());
-      req.setAppId(appId);
-      
-      req.setFromDate(null);
-      resp = logService.fetchLogsTillDate(req);
-      Assert.assertNotNull(resp);
-      Assert.assertFalse(resp.getLogs().isEmpty());
-      Assert.assertEquals(batchSize, resp.getLogs().size());
-      
-      req.setFromDate(yesterday.getTime());
-      req.setTillDate(null);
-      resp = logService.fetchLogsFromDate(req);
-      Assert.assertNotNull(resp);
-      Assert.assertFalse(resp.getLogs().isEmpty());
-      Assert.assertEquals(batchSize, resp.getLogs().size());
+      Assert.assertEquals(0, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
+           
       
     } catch (Exception e) {
       Assert.fail(e.getMessage());
@@ -155,7 +200,7 @@ public class LogEventServiceTest {
   }
   
   @Test
-  public void testFindLogEventsWithTerm()
+  public void testFindLogEventsBetweenDatesWithTerm()
   {
     testInsertLogEvents();
     
@@ -180,6 +225,8 @@ public class LogEventServiceTest {
     
     QueryRequest req = new QueryRequest();
     req.setAppId(appId);
+    req.setFetchSize(batchSize/2);
+    req.setSearchTerm("lOREm");
     
     Calendar yesterday = GregorianCalendar.getInstance();
     yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
@@ -192,29 +239,97 @@ public class LogEventServiceTest {
     QueryResponse resp;
     try 
     {
+      //next pages
+      req.setFetchPrev(false);
+      
+      //page 1
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      Assert.assertEquals(batchSize/2, resp.getITotalRecords());
+      Assert.assertEquals(batchSize/2, resp.getITotalDisplayRecords());
+      
+      String page2FirstRow = resp.getFirstRowUUID();
+      
+      //page 2 (not exists)
+      req.setFetchMarkUUID(resp.getLastRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      Assert.assertEquals(0, resp.getLogs().size());
+      Assert.assertEquals(batchSize/2, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
+            
+      //prev pages
+      req.setFetchPrev(true);
+      
+      //page 0 (not exists)
+      req.setFetchMarkUUID(page2FirstRow);
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      Assert.assertEquals(0, resp.getLogs().size());
+      Assert.assertEquals(batchSize/2, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
+            
+      req.setAppId("doNotMatch");
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      Assert.assertEquals(0, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
+      
+      req.setAppId(appId);
+      req.setSearchTerm("Ipsum");
+      req.setFetchPrev(false);
+      req.setFetchMarkUUID(null);
+      
+      //page 1
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      Assert.assertEquals(batchSize/2, resp.getITotalRecords());
+      Assert.assertEquals(batchSize/2, resp.getITotalDisplayRecords());
+      
+      page2FirstRow = resp.getFirstRowUUID();
+      
+      //page 2 (not exists)
+      req.setFetchMarkUUID(resp.getLastRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      Assert.assertEquals(0, resp.getLogs().size());
+      Assert.assertEquals(batchSize/2, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
+            
+      //prev pages
+      req.setFetchPrev(true);
+      
+      //page 0 (not exists)
+      req.setFetchMarkUUID(page2FirstRow);
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      Assert.assertEquals(0, resp.getLogs().size());
+      Assert.assertEquals(batchSize/2, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
       
       req.setAppId("doNotMatch");
       resp = logService.fetchLogsBetweenDates(req);
       Assert.assertNotNull(resp);
       Assert.assertTrue(resp.getLogs().isEmpty());
-      req.setAppId(appId);
-            
-      req.setSearchTerm("Lorem");
-      resp = logService.fetchLogsBetweenDates(req);
-      Assert.assertNotNull(resp);
-      Assert.assertFalse(resp.getLogs().isEmpty());
-      Assert.assertEquals(batchSize/2, resp.getLogs().size());
-      
-      req.setSearchTerm("Ipsum");
-      resp = logService.fetchLogsBetweenDates(req);
-      Assert.assertNotNull(resp);
-      Assert.assertFalse(resp.getLogs().isEmpty());
-      Assert.assertEquals(batchSize/2, resp.getLogs().size());
-      
+      Assert.assertEquals(0, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
+           
       
     } catch (Exception e) {
       Assert.fail(e.getMessage());
     }
-    
   }
 }

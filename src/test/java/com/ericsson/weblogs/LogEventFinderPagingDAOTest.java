@@ -361,43 +361,119 @@ public class LogEventFinderPagingDAOTest {
     
   }
   
- 
-  @Autowired
-  private FullTextSearch fts;
-  
-  
-  /*@Test
-  public void testFindByAppIdWithTermAndDate()
+  @Test
+  public void testCountBetweenDates()
   {
-        
+    
     requests = new ArrayList<>(batchSize);
     for(int i=0; i<batchSize; i++)
     {
       event = new LogEvent();
       event.setId(new LogEventKey());
       event.setLogText("This is some bla blaah bla logging at info level");
-      event.getId().setAppId((i % 2 == 0) ? appId : appId+":");
-      event.setTokens(fts.tokenizeText("This is some bla blaah bla logging at info level"));
+      event.getId().setAppId(appId);
       requests.add(event);
     }
     try 
     {
       iDao.ingestAsync(requests);
       
+     
       Calendar yesterday = GregorianCalendar.getInstance();
       yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
       
-      List<LogEvent> events = fDao.findByAppIdAfterDateContains(appId, "bla", yesterday.getTime());
-      Assert.assertNotNull("Found null", events);
-      Assert.assertEquals("Incorrect resultset size", batchSize/2, events.size());
+      Calendar tomorrow = GregorianCalendar.getInstance();
+      tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)+1);
       
-      events = fDao.findByAppIdAfterDateContains(appId, "NOTPRESENT", yesterday.getTime());
-      Assert.assertNotNull("Found null", events);
-      Assert.assertTrue("False resultset returned", events.isEmpty());
+      requests.clear();
       
-      events = fDao.findByAppIdBeforeDateContains(appId, "bla", yesterday.getTime());
-      Assert.assertNotNull("Found null", events);
-      Assert.assertTrue("False resultset returned", events.isEmpty());
+      event = new LogEvent();
+      event.setId(new LogEventKey());
+      event.setLogText("This is some bla blaah bla logging at info level");
+      event.getId().setAppId(appId);
+      event.getId().setTimestamp(UUIDs.endOf(tomorrow.getTimeInMillis()));
+      requests.add(event);
+      
+      event = new LogEvent();
+      event.setId(new LogEventKey());
+      event.setLogText("This is some bla blaah bla logging at info level");
+      event.getId().setAppId(appId);
+      event.getId().setTimestamp(UUIDs.endOf(yesterday.getTimeInMillis()));
+      requests.add(event);
+      
+      iDao.ingestEntitiesAsync(requests);
+      
+      long count = fDao.count(appId, "", yesterday.getTime(), tomorrow.getTime());
+      Assert.assertEquals("Incorrect count for between: ", batchSize+2, count);
+      
+      count = fDao.count(appId, "", yesterday.getTime(), null);
+      Assert.assertEquals("Incorrect count for after: ", batchSize+1, count);
+      
+      count = fDao.count(appId, "", null, tomorrow.getTime());
+      Assert.assertEquals("Incorrect count for before: ", batchSize+1, count);
+      
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+  }
+  
+ 
+  @Autowired
+  private FullTextSearch fts;
+  
+  
+  @Test
+  public void testFindByAppIdWithTermAndDate()
+  {
+        
+    requests = new ArrayList<>(batchSize);
+    Calendar yesterday = GregorianCalendar.getInstance();
+    yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
+    long today = System.currentTimeMillis();
+    
+    final String appId1 = appId+":";
+    for(int i=0; i<batchSize; i++)
+    {
+      event = new LogEvent();
+      event.setId(new LogEventKey());
+      event.setLogText((i % 2 == 0) ? "This is some bla blaah bla logging at info level" : "Lorem Ipsum");
+      event.getId().setAppId((i % 2 == 0) ? appId : appId1);
+      event.getId().setTimestamp((i % 2 == 0) ? UUIDs.endOf(yesterday.getTimeInMillis()) : UUIDs.timeBased());
+      yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
+      event.setTokens(fts.tokenizeText(event.getLogText()));
+      requests.add(event);
+    }
+    try 
+    {
+      iDao.ingestEntitiesAsync(requests);
+      
+      List<LogEvent> page1 = fDao.findByAppIdAfterDateContains(appId1, "lorem", null, yesterday.getTime(), batchSize, false);
+      Assert.assertNotNull("Found null", page1);
+      Assert.assertEquals("Incorrect resultset size after, ", batchSize/2, page1.size());
+      
+      LogEvent last = page1.get(page1.size()-1);
+      page1 = fDao.findByAppIdAfterDateContains(appId1, "lorem", last, yesterday.getTime(), batchSize, false);
+      Assert.assertNotNull("Found null", page1);
+      Assert.assertTrue("Incorrect resultset size for next page after, ", page1.isEmpty());
+      
+      page1 = fDao.findByAppIdAfterDateContains(appId, "lorem", null, yesterday.getTime(), batchSize, false);
+      Assert.assertNotNull("Found null", page1);
+      Assert.assertTrue("Incorrect resultset size for no match appId, ", page1.isEmpty());
+      
+      page1 = fDao.findByAppIdBeforeDateContains(appId1, "lorem", null, new Date(today), batchSize, false);
+      Assert.assertNotNull("Found null", page1);
+      Assert.assertTrue("Incorrect resultset size for no match, ", page1.isEmpty());
+      
+      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "lorem", null, yesterday.getTime(), new Date(), batchSize, false);
+      Assert.assertNotNull("Found null", page1);
+      Assert.assertEquals("Incorrect resultset size between, ", batchSize/2, page1.size());
+      
+      last = page1.get(page1.size()-1);
+      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "lorem", last, yesterday.getTime(), new Date(), batchSize, false);
+      Assert.assertNotNull("Found null", page1);
+      Assert.assertTrue("Incorrect resultset size for next page between , ", page1.isEmpty());
+     
       
     } catch (Exception e) {
       e.printStackTrace();
@@ -405,52 +481,5 @@ public class LogEventFinderPagingDAOTest {
     }
     
   }
-  
-  @Test
-  public void testFindByAppIdWithTermAndDateBetween()
-  {
-        
-    requests = new ArrayList<>(batchSize);
-    for(int i=0; i<batchSize; i++)
-    {
-      event = new LogEvent();
-      event.setId(new LogEventKey());
-      event.setLogText("This is some bla blaah bla logging at info level");
-      event.getId().setAppId((i % 2 == 0) ? appId : appId+":");
-      event.setTokens(fts.tokenizeText("This is some bla blaah bla logging at info level"));
-      requests.add(event);
-    }
-    try 
-    {
-      iDao.ingestAsync(requests);
-      
-      Calendar yesterday = GregorianCalendar.getInstance();
-      yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
-      
-      Calendar tomorrow = GregorianCalendar.getInstance();
-      tomorrow.set(Calendar.DATE, yesterday.get(Calendar.DATE)+1);
-      
-      List<LogEvent> events = fDao.findByAppIdBetweenDatesContains(appId, "bla", yesterday.getTime(), tomorrow.getTime());
-      Assert.assertNotNull("Found null", events);
-      Assert.assertEquals("Incorrect resultset size", batchSize/2, events.size());
-      
-      events = fDao.findByAppIdBetweenDatesContains(appId, "NOTPRESENT", yesterday.getTime(), tomorrow.getTime());
-      Assert.assertNotNull("Found null", events);
-      Assert.assertTrue("False resultset returned", events.isEmpty());
-      
-      events = fDao.findByAppIdBetweenDatesContains(appId, "bla", yesterday.getTime(), new Date());
-      Assert.assertNotNull("Found null", events);
-      Assert.assertEquals("Incorrect resultset size", batchSize/2, events.size());
-      
-      events = fDao.findByAppIdBetweenDatesContains(appId, "bla", new Date(), tomorrow.getTime());
-      Assert.assertNotNull("Found null", events);
-      Assert.assertTrue("False resultset returned", events.isEmpty());
-      
-    } catch (Exception e) {
-      e.printStackTrace();
-      Assert.fail(e.getMessage());
-    }
-    
-  }*/
   
 }

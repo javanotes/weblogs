@@ -40,10 +40,10 @@ import com.ericsson.weblogs.utils.CommonHelper;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @deprecated - Range queries use ALLOW FILTERING.
+ * @deprecated - Range queries use ALLOW FILTERING. Not updated with domain. Use {@linkplain LogEventFinderPagingDAO}
  */
 @Slf4j@Repository
-public class LogEventFinderDAO extends LogEventDAO{
+class LogEventFinderDAO extends LogEventDAO{
 
   private String[] pkCols;
   private String timeuuidCol;

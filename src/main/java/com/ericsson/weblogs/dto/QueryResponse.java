@@ -29,6 +29,10 @@ import lombok.Data;
 @Data
 public class QueryResponse {
 
+  /**
+   * Current page reference timeuuids. 
+   */
+  private String firstRowUUID, lastRowUUID;
   @JsonProperty("iTotalRecords")
   private long iTotalRecords;
   @JsonProperty("iTotalDisplayRecords")

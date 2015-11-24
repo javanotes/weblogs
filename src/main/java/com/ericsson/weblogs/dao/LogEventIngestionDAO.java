@@ -116,7 +116,8 @@ public class LogEventIngestionDAO extends LogEventDAO {
   /**
    * 
    * This is an asynchronous operation for saving as entities. We do not explicitly create the CQL here. 
-   * <b>Note:</b> this method will NOT use server generated timeuuid using now() function.
+   * <b>Note:</b> this method will NOT use server generated timeuuid using now() function. Will be useful
+   * for inserting dates manually from application.
    * @param entities
    * @throws DataAccessException 
    * 
@@ -213,7 +214,7 @@ public class LogEventIngestionDAO extends LogEventDAO {
   }
   /**
    * This is an insert operation designed for high performance writes. A CQL is used to create a PreparedStatement once, 
-   * then all row values are bound to the single PreparedStatement and executed asynchronously and <b>atomically</b> 
+   * then all row values are bound to the single PreparedStatement and executed asynchronously and <i>atomically</i> 
    * in BATCH, against the Session. <p>
    * This method will use server generated timeuuid using now() function.
    * @param entities
@@ -256,7 +257,8 @@ public class LogEventIngestionDAO extends LogEventDAO {
   }
     
   /**
-   * Inserts a single log event using a prepared statement synchronously. This method will use server generated timeuuid using now() function.
+   * Inserts a single log event using a prepared statement synchronously. 
+   * This method will use server generated timeuuid using now() function.
    * @param event
    * @throws DataAccessException
    */

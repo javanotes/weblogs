@@ -22,13 +22,14 @@ package com.ericsson.weblogs.service.impl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.ericsson.weblogs.dao.DataAccessException;
-import com.ericsson.weblogs.dao.LogEventFinderDAO;
+import com.ericsson.weblogs.dao.LogEventFinderPagingDAO;
 import com.ericsson.weblogs.dao.LogEventIngestionDAO;
 import com.ericsson.weblogs.domain.LogEvent;
 import com.ericsson.weblogs.dto.LogEventDTO;
@@ -48,7 +49,7 @@ public class LoggingService implements ILoggingService {
   @Autowired
   private LogEventIngestionDAO ingestor;
   @Autowired
-  private LogEventFinderDAO finder;
+  private LogEventFinderPagingDAO finder;
   @Autowired
   private FullTextSearch ftsEngine;
   
@@ -118,28 +119,46 @@ public class LoggingService implements ILoggingService {
     if(request.getFromDate() == null)
       throw new ServiceException("start date missing");
     
+    
     if(StringUtils.hasText(request.getSearchTerm()))
     {
       request.setSearchTerm(request.getSearchTerm().toLowerCase());
     }
     final List<LogEventDTO> events = new ArrayList<>();
-    List<LogEvent> data;
-    try {
-      if(!StringUtils.isEmpty(request.getSearchTerm()))
+    List<LogEvent> data;long count;
+    LogEvent fetchMark = StringUtils.hasText(request.getFetchMarkUUID())
+        ? new LogEvent(UUID.fromString(request.getFetchMarkUUID())) : null;
+    try 
+    {
+      if (!StringUtils.isEmpty(request.getSearchTerm())) 
       {
-        data = finder.findByAppIdAfterDateContains(request.getAppId(), request.getSearchTerm(), request.getFromDate());
-      }
-      else
+        data = finder.findByAppIdAfterDateContains(request.getAppId(),
+            request.getSearchTerm(), fetchMark, request.getFromDate(),
+            request.getFetchSize(), request.isFetchPrev());
+        
+        count = finder.count(request.getAppId(), request.getSearchTerm(), request.getFromDate(), null);
+      } 
+      else 
       {
-        data = finder.findByAppIdAfterDate(request.getAppId(), request.getFromDate());
+        data = finder.findByAppIdAfterDate(request.getAppId(), fetchMark,
+            request.getFromDate(), request.getFetchSize(),
+            request.isFetchPrev());
+        
+        count = finder.count(request.getAppId(), null, request.getFromDate(), null);
       }
-    } catch (org.springframework.dao.DataAccessException e) {
+    } 
+    catch (org.springframework.dao.DataAccessException e) {
       log.error("While querying data ", e);
       throw new ServiceException(e);
     }
     
+    final QueryResponse resp = new QueryResponse();
+    resp.setITotalRecords(count);
     if(data != null && !data.isEmpty())
     {
+      resp.setFirstRowUUID(data.get(0).getId().getTimestamp().toString());
+      resp.setLastRowUUID(data.get(data.size()-1).getId().getTimestamp().toString());
+      
       events.addAll(
       Collections2.transform(data, new Function<LogEvent, LogEventDTO>() {
 
@@ -148,8 +167,13 @@ public class LoggingService implements ILoggingService {
           return new LogEventDTO(input);
         }
       }));
+      
+      resp.getLogs().addAll(events);
+      resp.setITotalDisplayRecords(count);
+      
+      
     }
-    return new QueryResponse(events);
+    return resp;
   }
 
   @Override
@@ -165,23 +189,40 @@ public class LoggingService implements ILoggingService {
       request.setSearchTerm(request.getSearchTerm().toLowerCase());
     }
     final List<LogEventDTO> events = new ArrayList<>();
-    List<LogEvent> data;
-    try {
+    List<LogEvent> data;long count;
+    LogEvent fetchMark = StringUtils.hasText(request.getFetchMarkUUID())
+        ? new LogEvent(UUID.fromString(request.getFetchMarkUUID())) : null;
+        
+    try 
+    {
       if(!StringUtils.isEmpty(request.getSearchTerm()))
       {
-        data = finder.findByAppIdBeforeDateContains(request.getAppId(), request.getSearchTerm(), request.getTillDate());
+        data = finder.findByAppIdBeforeDateContains(request.getAppId(),
+            request.getSearchTerm(), fetchMark, request.getTillDate(),
+            request.getFetchSize(), request.isFetchPrev());
+        
+        count = finder.count(request.getAppId(), request.getSearchTerm(), null, request.getTillDate());
       }
       else
       {
-        data = finder.findByAppIdBeforeDate(request.getAppId(), request.getTillDate());
+        data = finder.findByAppIdBeforeDate(request.getAppId(),
+            fetchMark, request.getTillDate(),
+            request.getFetchSize(), request.isFetchPrev());
+        
+        count = finder.count(request.getAppId(), null, null, request.getTillDate());
       }
     } catch (org.springframework.dao.DataAccessException e) {
       log.error("While querying data ", e);
       throw new ServiceException(e);
     }
     
+    final QueryResponse resp = new QueryResponse();
+    resp.setITotalRecords(count);
     if(data != null && !data.isEmpty())
     {
+      resp.setFirstRowUUID(data.get(0).getId().getTimestamp().toString());
+      resp.setLastRowUUID(data.get(data.size()-1).getId().getTimestamp().toString());
+      
       events.addAll(
       Collections2.transform(data, new Function<LogEvent, LogEventDTO>() {
 
@@ -190,8 +231,12 @@ public class LoggingService implements ILoggingService {
           return new LogEventDTO(input);
         }
       }));
+      
+      resp.getLogs().addAll(events);
+      resp.setITotalDisplayRecords(count);
+            
     }
-    return new QueryResponse(events);
+    return resp;
   }
 
   @Override
@@ -210,22 +255,39 @@ public class LoggingService implements ILoggingService {
     }
     final List<LogEventDTO> events = new ArrayList<>();
     List<LogEvent> data;
-    try {
+    LogEvent fetchMark = StringUtils.hasText(request.getFetchMarkUUID())
+        ? new LogEvent(UUID.fromString(request.getFetchMarkUUID())) : null;
+       
+    long count;
+    try 
+    {
       if(!StringUtils.isEmpty(request.getSearchTerm()))
       {
-        data = finder.findByAppIdBetweenDatesContains(request.getAppId(), request.getSearchTerm(), request.getFromDate(), request.getTillDate());
+        data = finder.findByAppIdBetweenDatesContains(request.getAppId(),
+            request.getSearchTerm(), fetchMark, request.getFromDate(), request.getTillDate(),
+            request.getFetchSize(), request.isFetchPrev());
+        
+        count = finder.count(request.getAppId(), request.getSearchTerm(), request.getFromDate(), request.getTillDate());
       }
       else
       {
-        data = finder.findByAppIdBetweenDates(request.getAppId(), request.getFromDate(), request.getTillDate());
+        data = finder.findByAppIdBetweenDates(request.getAppId(),
+            fetchMark, request.getFromDate(), request.getTillDate(),
+            request.getFetchSize(), request.isFetchPrev());
+        
+        count = finder.count(request.getAppId(), null, request.getFromDate(), request.getTillDate());
       }
     } catch (org.springframework.dao.DataAccessException e) {
       log.error("While querying data ", e);
       throw new ServiceException(e);
     }
-    
+    final QueryResponse resp = new QueryResponse();
+    resp.setITotalRecords(count);
     if(data != null && !data.isEmpty())
     {
+      resp.setFirstRowUUID(data.get(0).getId().getTimestamp().toString());
+      resp.setLastRowUUID(data.get(data.size()-1).getId().getTimestamp().toString());
+      
       events.addAll(
       Collections2.transform(data, new Function<LogEvent, LogEventDTO>() {
 
@@ -234,7 +296,12 @@ public class LoggingService implements ILoggingService {
           return new LogEventDTO(input);
         }
       }));
+      
+      resp.getLogs().addAll(events);
+      resp.setITotalDisplayRecords(count);
+      
+      
     }
-    return new QueryResponse(events);
+    return resp;
   }
 }

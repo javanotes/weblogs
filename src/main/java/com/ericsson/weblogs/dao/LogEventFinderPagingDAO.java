@@ -97,7 +97,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
           : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
     }  
     
-    log.debug(">>>>>>>>> Firing select query: " + sel.getQueryString());
+    log.debug(">>>>>>>>> Firing select query: " + sel.toString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
    
@@ -112,7 +112,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
           ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
           : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
     }
-    log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
+    log.debug(">>>>>>>>> Firing select query: "+sel.toString());
     
     return cassandraOperations.select(sel, LogEvent.class);
     
@@ -130,7 +130,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     .and(QueryBuilder.contains(tokenCol, token));
     if(lastRow != null)
     {
-      w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
+      w.and(isPrevPaging ? QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)) : QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
       .and(isPrevPaging
           ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
           : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
@@ -140,12 +140,21 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
       w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
       .and(QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)));
     }
-    log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
+    log.debug(">>>>>>>>> Firing select query: "+sel.toString());
     
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
-  
+  /**
+   * 
+   * @param appId
+   * @param token
+   * @param lastRow
+   * @param fromDate
+   * @param limit
+   * @param isPrevPaging
+   * @return
+   */
   public List<LogEvent> findByAppIdAfterDateContains(final String appId, String token, LogEvent lastRow, final Date fromDate, int limit, boolean isPrevPaging)
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
@@ -162,7 +171,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     {
       w.and(QueryBuilder.gt(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, fromDate)));
     }
-    log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
+    log.debug(">>>>>>>>> Firing select query: "+sel.toString());
     
     return cassandraOperations.select(sel, LogEvent.class);
   }
@@ -184,7 +193,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
       w
       .and(QueryBuilder.lt(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(toDate))));
     }    
-    log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
+    log.debug(">>>>>>>>> Firing select query: "+sel.toString());
     
     return cassandraOperations.select(sel, LogEvent.class);
   }
@@ -204,7 +213,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
     if(lastRow != null)
     {
-      w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
+      w.and(isPrevPaging ? QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)) : QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
       .and(isPrevPaging
           ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
           : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
@@ -214,7 +223,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
       w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
       .and(QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)));
     }
-    log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
+    log.debug(">>>>>>>>> Firing select query: "+sel.toString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
@@ -234,7 +243,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
       w
       .and(QueryBuilder.lt(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(toDate))));
     }
-    log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
+    log.debug(">>>>>>>>> Firing select query: "+sel.toString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
@@ -253,7 +262,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     {
       w.and(QueryBuilder.gt(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, fromDate)));
     }
-    log.debug(">>>>>>>>> Firing select query: "+sel.getQueryString());
+    log.debug(">>>>>>>>> Firing select query: "+sel.toString());
     return cassandraOperations.select(sel, LogEvent.class);
   }
   
@@ -261,11 +270,16 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
   {
     Select sel = QueryBuilder.select().countAll().from(table);
     Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
-    if (fromDate != null) {
+    
+    if(fromDate != null && toDate != null){
+      w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
+      .and(QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)));
+    }
+    else if (fromDate != null) {
       w.and(
           QueryBuilder.gt(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, fromDate)));
     }
-    if(toDate != null){
+    else if(toDate != null){
       w.and(
           QueryBuilder.lt(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(toDate))));
     }
@@ -275,7 +289,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     }
       
     
-    log.debug(">>>>>>>>> Firing count(*) query: "+sel.getQueryString());
+    log.debug(">>>>>>>>> Firing count(*) query: "+sel.toString());
     Row row = cassandraOperations.query(sel).one();
     return row.getLong(0);
     

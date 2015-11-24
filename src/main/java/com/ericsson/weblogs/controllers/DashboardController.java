@@ -46,30 +46,45 @@ public class DashboardController {
   static final String DATE_PICKER_FORMAT = "MM/dd/yyyy";
 
   @RequestMapping(value = "/logsearch")
-  public @ResponseBody QueryResponse fetchLogs(
+  public @ResponseBody QueryResponse fetchLogs(@RequestParam int iDisplayStart,
+      @RequestParam int iDisplayLength,
       @RequestParam(value = "p_appid") String appId,
       @RequestParam(value = "p_dtrange") String dateRange,
       @RequestParam(value = "p_term", required = false) String searchTerm,
+      @RequestParam(value = "p_rowid", required = false) String fetchMarkUUID,
       @RequestParam(value = "p_refresh") boolean autoRefresh, Model model) {
 
+    int pageIdx = iDisplayStart/iDisplayLength;
+    log.debug("pageIdx: "+pageIdx);
+    int pageSize = iDisplayLength;
+    
     QueryResponse qr = new QueryResponse();
     QueryRequest req = new QueryRequest();
     req.setAppId(appId);
     req.setSearchTerm(searchTerm);
+    req.setFetchSize(pageSize);
+    req.setFetchMarkUUID(fetchMarkUUID);
+    
     // 11/19/2015 - 11/19/2015
     SimpleDateFormat sdf = new SimpleDateFormat(DATE_PICKER_FORMAT);
     StringTokenizer st = new StringTokenizer(dateRange);
-    try {
-      req.setFromDate(sdf.parse(st.nextToken()));
-      st.nextToken();
-      req.setTillDate(sdf.parse(st.nextToken()));
+    try 
+    {
+      if(st.hasMoreTokens())
+        req.setFromDate(sdf.parse(st.nextToken()));
+      if(st.hasMoreTokens())
+        st.nextToken();
+      if(st.hasMoreTokens())
+        req.setTillDate(sdf.parse(st.nextToken()));
+      
     } catch (ParseException e) {
       log.error("Date parsing error ", e);
       qr.setError("Internal server error!");
     }
     log.debug("Got request: " + req);
 
-    try {
+    try 
+    {
       qr = logService.fetchLogsBetweenDates(req);
     } catch (ServiceException e) {
       log.error("", e);

@@ -23,6 +23,7 @@ import java.util.Date;
 
 import com.datastax.driver.core.utils.UUIDs;
 import com.ericsson.weblogs.domain.LogEvent;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import lombok.Data;
 
@@ -53,5 +54,6 @@ public class LogEventDTO {
   }
 
   private String applicationId, logText;
+  @JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd HH:mm a z")
   private Date timestamp;
 }

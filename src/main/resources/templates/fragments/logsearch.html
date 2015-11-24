@@ -61,14 +61,14 @@
 		
 		<div class="box box-solid box-primary">
 			<div class="box-header with-border">
-				<h4 class="box-title">Execution Point Status</h4>
+				<!-- <h4 class="box-title" align="center">Execution Log</h4> -->
 	
 			</div>
 			<table id="batchExecPtDetailsTable" 
 				class="table table-bordered table-striped table-hover table-condensed dt-responsive nowrap">
 				<thead>
 					<tr>
-						<th>Logged Time</th>
+						<th>Timestamp</th>
 						<th>Logged Text</th>
 					</tr>
 				</thead>
@@ -177,7 +177,52 @@
 				return;
 			}	
 			
-			$.ajax({
+			$('#nodataDiv').hide();
+			$('#mainForm').hide();
+			$('#myPleaseWait').modal('show');
+			
+			if(table){
+				table.fnDestroy();
+			}
+			
+			var param = '?'+'p_term='+term;
+			param += '&'+'p_appid='+appId;
+			param += '&'+'p_dtrange='+dtRange;
+			param += '&'+'p_refresh='+refresh;
+			//param += '&'+'p_nextid='+lastRowUUID;
+			//param += '&'+'p_previd='+firstRowUUID;
+			
+			table = $('#batchExecPtDetailsTable').DataTable({						    			               
+				"bProcesing" : true,
+			    "bServerSide" : true,
+			    "bLenthChange" : false,
+			    "iDisplayLength" : 10,
+			    "sAjaxDataProp": 'logs',
+			    "bAutoWidth" : false,
+			    "bFilter": false,
+			    "fnInitComplete": function (oSettings, json) {
+			        $("#myPleaseWait").modal("hide");
+			        $('#mainForm').show();
+			        console.log('json: '+JSON.parse(json));
+			        /*firstRowUUID = json('firstRowUUID');
+			        lastRowUUID = json('lastRowUUID');
+			        console.log('firstRowUUID: '+firstRowUUID);
+			        console.log('lastRowUUID: '+lastRowUUID);*/
+			    },
+			    "sAjaxSource" : "logsearch"+param,	
+			    "aoColumns" : [
+						       {
+						        "sTitle" : "Timestamp",
+						        "mDataProp" : "timestamp"
+						       },
+						       {
+						        "sTitle" : "Logged Text",
+						        "mDataProp" : "logText"
+						       }],
+                  "sPaginationType" : "two_button"
+            	});
+			
+			/* $.ajax({
 				url : _url,
 				method : 'GET',
 				data: {p_term: term, p_appid: appId, p_dtrange: dtRange, p_refresh: refresh},
@@ -220,7 +265,7 @@
 					$('#mainForm').hide();
 					$('#myPleaseWait').modal('show');
 				}
-			});
+			}); */
 			
 		}
 		

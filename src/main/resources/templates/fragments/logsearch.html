@@ -90,6 +90,7 @@
 		var _url = [[@{/logsearch}]];
 		var refresh;
 		var table;
+		var firstRowUUID, lastRowUUID;
 		
 		function prepareEPTable(epList){
 			var innerHtml = '';
@@ -158,6 +159,7 @@
 			if(refresh){
 				timer = setInterval(refreshPage, 5000);
 			}	
+			
 
 		});
 				
@@ -182,90 +184,68 @@
 			$('#myPleaseWait').modal('show');
 			
 			if(table){
-				table.fnDestroy();
+				table.destroy();
 			}
 			
 			var param = '?'+'p_term='+term;
 			param += '&'+'p_appid='+appId;
 			param += '&'+'p_dtrange='+dtRange;
 			param += '&'+'p_refresh='+refresh;
-			//param += '&'+'p_nextid='+lastRowUUID;
-			//param += '&'+'p_previd='+firstRowUUID;
+			
 			
 			table = $('#batchExecPtDetailsTable').DataTable({						    			               
 				"bProcesing" : true,
-			    "bServerSide" : true,
+			    "serverSide" : true,
 			    "bLenthChange" : false,
-			    "iDisplayLength" : 10,
-			    "sAjaxDataProp": 'logs',
-			    "bAutoWidth" : false,
-			    "bFilter": false,
-			    "fnInitComplete": function (oSettings, json) {
+			    "pageLength" : 10,
+			    "orderFixed": [ 0, 'desc' ],
+			    "ajax": {
+			        "url": 'logsearch'+param,
+			        "dataSrc": 'logs'
+			      },
+			    "autoWidth" : false,
+			    "searching": false,
+			    "initComplete": function (oSettings, json) {
 			        $("#myPleaseWait").modal("hide");
 			        $('#mainForm').show();
-			        console.log('json: '+JSON.parse(json));
-			        /*firstRowUUID = json('firstRowUUID');
-			        lastRowUUID = json('lastRowUUID');
-			        console.log('firstRowUUID: '+firstRowUUID);
-			        console.log('lastRowUUID: '+lastRowUUID);*/
+			        
+			      	//paginate button click event
+					$('.paginate_button').click(function(e){
+						if($(this).hasClass('next')){
+							console.log('paginate_button: NEXT');
+							param += '&'+'p_rowid='+lastRowUUID;
+						}
+						if($(this).hasClass('previous')){
+							console.log('paginate_button: PREV');
+							param += '&'+'p_rowid='+firstRowUUID;
+							param += '&'+'p_prev='+true;
+						}
+						
+					});
 			    },
-			    "sAjaxSource" : "logsearch"+param,	
-			    "aoColumns" : [
+			    "columns" : [
 						       {
-						        "sTitle" : "Timestamp",
-						        "mDataProp" : "timestamp"
+						        "title" : "Timestamp",
+						        "mDataProp" : "timestamp",
+						        "orderable": false
 						       },
 						       {
-						        "sTitle" : "Logged Text",
-						        "mDataProp" : "logText"
+						        "title" : "Logged Text",
+						        "mDataProp" : "logText",
+						        "orderable": false
 						       }],
-                  "sPaginationType" : "two_button"
+                  "pagingType" : "simple"
             	});
 			
-			/* $.ajax({
-				url : _url,
-				method : 'GET',
-				data: {p_term: term, p_appid: appId, p_dtrange: dtRange, p_refresh: refresh},
-				dataType: "json",
-				success : function(data){
+			table.on( 'xhr', function () {
+			    var json = table.ajax.json();
+			    //console.log( 'row(s) were loaded: '+JSON.stringify(json) );
+			    firstRowUUID = json['firstRowUUID'];
+		        lastRowUUID = json['lastRowUUID'];
+		        console.log('firstRowUUID: '+firstRowUUID);
+		        console.log('lastRowUUID: '+lastRowUUID);
+			} );
 					
-					if(data.error){
-						$('#myPleaseWait').modal('hide');
-						showAlertModal(data.error);
-					}
-					else if(!data.logs || $.isEmptyObject(data.logs)){
-						$('#myPleaseWait').modal('hide');
-						$('#nodataDiv').show();
-					}
-					else{
-						prepareEPTable(data.logs);
-						if(table){
-							table.fnDestroy();
-						}
-						table = $('#batchExecPtDetailsTable').DataTable({						    			               
-			                "bProcesing" : true,
-						    "bLenthChange" : false,
-						    "iDisplayLength" : 10,
-						    "bAutoWidth" : false,
-						    "bFilter": false,
-						    "sPaginationType" : "bootstrap"			                
-		                });
-						$('#myPleaseWait').modal('hide');
-						$('#mainForm').show();
-					}  
-          
-				},//end success
-				error : function(err){
-					$('#myPleaseWait').modal('hide');
-					console.log('Error => '+err);
-					showAlertModal('Internal server error!');
-				},
-				beforeSend : function(){
-					$('#nodataDiv').hide();
-					$('#mainForm').hide();
-					$('#myPleaseWait').modal('show');
-				}
-			}); */
 			
 		}
 		

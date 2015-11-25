@@ -46,17 +46,17 @@ public class DashboardController {
   static final String DATE_PICKER_FORMAT = "MM/dd/yyyy";
 
   @RequestMapping(value = "/logsearch")
-  public @ResponseBody QueryResponse fetchLogs(@RequestParam int iDisplayStart,
-      @RequestParam int iDisplayLength,
+  public @ResponseBody QueryResponse fetchLogs(@RequestParam int start,//from datatables
+      @RequestParam int length,//from datatables
       @RequestParam(value = "p_appid") String appId,
       @RequestParam(value = "p_dtrange") String dateRange,
       @RequestParam(value = "p_term", required = false) String searchTerm,
       @RequestParam(value = "p_rowid", required = false) String fetchMarkUUID,
       @RequestParam(value = "p_refresh") boolean autoRefresh, Model model) {
 
-    int pageIdx = iDisplayStart/iDisplayLength;
+    int pageIdx = start/length;
     log.debug("pageIdx: "+pageIdx);
-    int pageSize = iDisplayLength;
+    int pageSize = length;
     
     QueryResponse qr = new QueryResponse();
     QueryRequest req = new QueryRequest();

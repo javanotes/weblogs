@@ -33,9 +33,9 @@ public class QueryResponse {
    * Current page reference timeuuids. 
    */
   private String firstRowUUID, lastRowUUID;
-  @JsonProperty("iTotalRecords")
+  @JsonProperty("recordsTotal")
   private long iTotalRecords;
-  @JsonProperty("iTotalDisplayRecords")
+  @JsonProperty("recordsFiltered")
   private long iTotalDisplayRecords;
   private List<LogEventDTO> logs = new ArrayList<>();
   private String error;

@@ -37,6 +37,7 @@ import org.thymeleaf.spring4.view.ThymeleafViewResolver;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.thymeleaf.templateresolver.TemplateResolver;
 
+import com.ericsson.weblogs.config.handler.LoggingInterceptor;
 import com.ericsson.weblogs.config.handler.ThymeleafLayoutInterceptor;
 
 @Configuration
@@ -46,6 +47,8 @@ public class MvcConfiguration extends WebMvcConfigurerAdapter {
  
   @Autowired
   private ThymeleafLayoutInterceptor layoutInterceptor;
+  @Autowired
+  private LoggingInterceptor logInterceptor;
 
   /*@Bean(name = "multipartResolver")
   public CommonsMultipartResolver multipartResolver() {
@@ -101,6 +104,7 @@ public class MvcConfiguration extends WebMvcConfigurerAdapter {
   public void addInterceptors(InterceptorRegistry registry) {
     //registry.addInterceptor(menuLoadingInterceptor);
     registry.addInterceptor(layoutInterceptor);
+    registry.addInterceptor(logInterceptor);
     //registry.addInterceptor(logbackInterceptor);
   }
   

@@ -90,8 +90,7 @@
 		var _url = [[@{/logsearch}]];
 		var refresh;
 		var table;
-		var firstRowUUID, lastRowUUID;
-		
+				
 		function prepareEPTable(epList){
 			var innerHtml = '';
 						
@@ -164,11 +163,18 @@
 		});
 				
 		function refreshPage(){
-			//using location.reload() would take the context out of this request
-			var term = $('#term').val();
-			var appId = $('#appId').val();
-			var dtRange = $('#reportrange').val();
+			//local variables
+			var firstRowUUID, lastRowUUID;
+			var term, appId, dtRange;
+			var prev;
+			var lastPage,currPage;
 			
+			//using location.reload() would take the context out of this request
+			term = $('#term').val();
+			appId = $('#appId').val();
+			dtRange = $('#reportrange').val();
+			lastPage = 0;
+			currPage = 0;
 			
 			if(!appId){
 				showAlertModal('Application ID is required');
@@ -186,22 +192,30 @@
 			if(table){
 				table.destroy();
 			}
-			
-			var param = '?'+'p_term='+term;
-			param += '&'+'p_appid='+appId;
-			param += '&'+'p_dtrange='+dtRange;
-			param += '&'+'p_refresh='+refresh;
-			
-			
-			table = $('#batchExecPtDetailsTable').DataTable({						    			               
+						
+			table = $('#batchExecPtDetailsTable')
+			.DataTable({	
+				
 				"bProcesing" : true,
 			    "serverSide" : true,
 			    "bLenthChange" : false,
 			    "pageLength" : 10,
 			    "orderFixed": [ 0, 'desc' ],
 			    "ajax": {
-			        "url": 'logsearch'+param,
-			        "dataSrc": 'logs'
+			        "url": 'logsearch',
+			        "dataSrc": 'logs',
+			        "data": function ( d ) {
+			        	return $.extend( {}, d, {
+			        		"p_term" : term,
+				            "p_appid" : appId,
+				            "p_dtrange" : dtRange,
+				            "p_refresh" : refresh,
+				            "p_frowid" : firstRowUUID,
+				            "p_lrowid" : lastRowUUID,
+				            "p_prev" : (lastPage > currPage)
+			              } );
+			            
+			        }
 			      },
 			    "autoWidth" : false,
 			    "searching": false,
@@ -210,15 +224,12 @@
 			        $('#mainForm').show();
 			        
 			      	//paginate button click event
-					$('.paginate_button').click(function(e){
-						if($(this).hasClass('next')){
-							console.log('paginate_button: NEXT');
-							param += '&'+'p_rowid='+lastRowUUID;
+					$('#batchExecPtDetailsTable_paginate').on('click','a',function(e){
+						if($(this).text() == 'Next'){
+							
 						}
-						if($(this).hasClass('previous')){
-							console.log('paginate_button: PREV');
-							param += '&'+'p_rowid='+firstRowUUID;
-							param += '&'+'p_prev='+true;
+						if($(this).text() == 'Previous'){
+							
 						}
 						
 					});
@@ -239,13 +250,19 @@
 			
 			table.on( 'xhr', function () {
 			    var json = table.ajax.json();
-			    //console.log( 'row(s) were loaded: '+JSON.stringify(json) );
 			    firstRowUUID = json['firstRowUUID'];
 		        lastRowUUID = json['lastRowUUID'];
-		        console.log('firstRowUUID: '+firstRowUUID);
-		        console.log('lastRowUUID: '+lastRowUUID);
+		        
 			} );
-					
+			table.on( 'page.dt', function () {
+			    var info = table.page.info();
+			    //console.log('Showing page: '+JSON.stringify(info));
+			    lastPage = currPage;
+			    currPage = info.page;
+			} );
+			table.on('preXhr.dt', function ( e, settings, data ) {
+				
+    		} );		
 			
 		}
 		

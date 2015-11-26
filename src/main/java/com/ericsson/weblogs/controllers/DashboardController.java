@@ -51,7 +51,9 @@ public class DashboardController {
       @RequestParam(value = "p_appid") String appId,
       @RequestParam(value = "p_dtrange") String dateRange,
       @RequestParam(value = "p_term", required = false) String searchTerm,
-      @RequestParam(value = "p_rowid", required = false) String fetchMarkUUID,
+      @RequestParam(value = "p_frowid", required = false) String firstRow,
+      @RequestParam(value = "p_lrowid", required = false) String lastRow,
+      @RequestParam(value = "p_prev", required = false) boolean isPrev,
       @RequestParam(value = "p_refresh") boolean autoRefresh, Model model) {
 
     int pageIdx = start/length;
@@ -63,7 +65,8 @@ public class DashboardController {
     req.setAppId(appId);
     req.setSearchTerm(searchTerm);
     req.setFetchSize(pageSize);
-    req.setFetchMarkUUID(fetchMarkUUID);
+    req.setFetchMarkUUID(isPrev ? firstRow : lastRow);
+    req.setFetchPrev(isPrev);
     
     // 11/19/2015 - 11/19/2015
     SimpleDateFormat sdf = new SimpleDateFormat(DATE_PICKER_FORMAT);
@@ -91,6 +94,8 @@ public class DashboardController {
       qr.setError(e.getMessage());
     }
 
+    log.debug("qr.getFirstRowUUID(): "+qr.getFirstRowUUID());
+    log.debug("qr.getLastRowUUID(): "+qr.getLastRowUUID());
     return qr;
   }
 }

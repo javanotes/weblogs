@@ -20,6 +20,8 @@
 package com.ericsson.weblogs.dao;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -96,9 +98,20 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
           ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
           : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
     }  
-    
+    if(isPrevPaging)
+      sel.orderBy(QueryBuilder.asc(timeuuidCol));
     log.debug(">>>>>>>>> Firing select query: " + sel.toString());
-    return cassandraOperations.select(sel, LogEvent.class);
+    List<LogEvent> events =  cassandraOperations.select(sel, LogEvent.class);
+    if(isPrevPaging){
+      Collections.sort(events, new Comparator<LogEvent>() {
+
+        @Override
+        public int compare(LogEvent o1, LogEvent o2) {
+          return o2.getId().getTimestamp().compareTo(o1.getId().getTimestamp());
+        }
+      });
+    }
+    return events;
   }
    
   public List<LogEvent> findByAppIdContains(final String appId, String token, LogEvent lastRow, int limit, boolean isPrevPaging)
@@ -112,10 +125,20 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
           ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
           : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
     }
+    if(isPrevPaging)
+      sel.orderBy(QueryBuilder.asc(timeuuidCol));
     log.debug(">>>>>>>>> Firing select query: "+sel.toString());
-    
-    return cassandraOperations.select(sel, LogEvent.class);
-    
+    List<LogEvent> events =  cassandraOperations.select(sel, LogEvent.class);
+    if(isPrevPaging){
+      Collections.sort(events, new Comparator<LogEvent>() {
+
+        @Override
+        public int compare(LogEvent o1, LogEvent o2) {
+          return o2.getId().getTimestamp().compareTo(o1.getId().getTimestamp());
+        }
+      });
+    }
+    return events;
     
   }
   /*
@@ -140,9 +163,21 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
       w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
       .and(QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)));
     }
+    if(isPrevPaging)
+      sel.orderBy(QueryBuilder.asc(timeuuidCol));
     log.debug(">>>>>>>>> Firing select query: "+sel.toString());
     
-    return cassandraOperations.select(sel, LogEvent.class);
+    List<LogEvent> events =  cassandraOperations.select(sel, LogEvent.class);
+    if(isPrevPaging){
+      Collections.sort(events, new Comparator<LogEvent>() {
+
+        @Override
+        public int compare(LogEvent o1, LogEvent o2) {
+          return o2.getId().getTimestamp().compareTo(o1.getId().getTimestamp());
+        }
+      });
+    }
+    return events;
   }
   
   /**
@@ -171,9 +206,21 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     {
       w.and(QueryBuilder.gt(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, fromDate)));
     }
+    if(isPrevPaging)
+      sel.orderBy(QueryBuilder.asc(timeuuidCol));
     log.debug(">>>>>>>>> Firing select query: "+sel.toString());
     
-    return cassandraOperations.select(sel, LogEvent.class);
+    List<LogEvent> events =  cassandraOperations.select(sel, LogEvent.class);
+    if(isPrevPaging){
+      Collections.sort(events, new Comparator<LogEvent>() {
+
+        @Override
+        public int compare(LogEvent o1, LogEvent o2) {
+          return o2.getId().getTimestamp().compareTo(o1.getId().getTimestamp());
+        }
+      });
+    }
+    return events;
   }
     
   public List<LogEvent> findByAppIdBeforeDateContains(String appId, String token, LogEvent lastRow, final Date toDate, int limit, boolean isPrevPaging)
@@ -192,10 +239,22 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     {
       w
       .and(QueryBuilder.lt(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(toDate))));
-    }    
+    } 
+    if(isPrevPaging)
+      sel.orderBy(QueryBuilder.asc(timeuuidCol));
     log.debug(">>>>>>>>> Firing select query: "+sel.toString());
     
-    return cassandraOperations.select(sel, LogEvent.class);
+    List<LogEvent> events =  cassandraOperations.select(sel, LogEvent.class);
+    if(isPrevPaging){
+      Collections.sort(events, new Comparator<LogEvent>() {
+
+        @Override
+        public int compare(LogEvent o1, LogEvent o2) {
+          return o2.getId().getTimestamp().compareTo(o1.getId().getTimestamp());
+        }
+      });
+    }
+    return events;
   }
   /**
    * both dates inclusive
@@ -213,7 +272,8 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
     if(lastRow != null)
     {
-      w.and(isPrevPaging ? QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)) : QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
+      w.and(isPrevPaging ? QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)) 
+          : QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
       .and(isPrevPaging
           ? QueryBuilder.gt(timeuuidCol, lastRow.getId().getTimestamp())
           : QueryBuilder.lt(timeuuidCol, lastRow.getId().getTimestamp()));
@@ -223,8 +283,21 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
       w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
       .and(QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)));
     }
+    if(isPrevPaging)
+      sel.orderBy(QueryBuilder.asc(timeuuidCol));
+    
     log.debug(">>>>>>>>> Firing select query: "+sel.toString());
-    return cassandraOperations.select(sel, LogEvent.class);
+    List<LogEvent> events =  cassandraOperations.select(sel, LogEvent.class);
+    if(isPrevPaging){
+      Collections.sort(events, new Comparator<LogEvent>() {
+
+        @Override
+        public int compare(LogEvent o1, LogEvent o2) {
+          return o2.getId().getTimestamp().compareTo(o1.getId().getTimestamp());
+        }
+      });
+    }
+    return events;
   }
   
   public List<LogEvent> findByAppIdBeforeDate(String appId, LogEvent lastRow, Date toDate, int limit, boolean isPrevPaging)
@@ -243,8 +316,20 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
       w
       .and(QueryBuilder.lt(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(toDate))));
     }
+    if(isPrevPaging)
+      sel.orderBy(QueryBuilder.asc(timeuuidCol));
     log.debug(">>>>>>>>> Firing select query: "+sel.toString());
-    return cassandraOperations.select(sel, LogEvent.class);
+    List<LogEvent> events =  cassandraOperations.select(sel, LogEvent.class);
+    if(isPrevPaging){
+      Collections.sort(events, new Comparator<LogEvent>() {
+
+        @Override
+        public int compare(LogEvent o1, LogEvent o2) {
+          return o2.getId().getTimestamp().compareTo(o1.getId().getTimestamp());
+        }
+      });
+    }
+    return events;
   }
   
   public List<LogEvent> findByAppIdAfterDate(String appId, LogEvent lastRow, Date fromDate, int limit, boolean isPrevPaging)
@@ -262,8 +347,20 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     {
       w.and(QueryBuilder.gt(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, fromDate)));
     }
+    if(isPrevPaging)
+      sel.orderBy(QueryBuilder.asc(timeuuidCol));
     log.debug(">>>>>>>>> Firing select query: "+sel.toString());
-    return cassandraOperations.select(sel, LogEvent.class);
+    List<LogEvent> events =  cassandraOperations.select(sel, LogEvent.class);
+    if(isPrevPaging){
+      Collections.sort(events, new Comparator<LogEvent>() {
+
+        @Override
+        public int compare(LogEvent o1, LogEvent o2) {
+          return o2.getId().getTimestamp().compareTo(o1.getId().getTimestamp());
+        }
+      });
+    }
+    return events;
   }
   
   public long count(final String appId, String token, final Date fromDate, final Date toDate)

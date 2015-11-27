@@ -56,6 +56,7 @@ public class LogEvent implements Serializable{
   {
     setId(new LogEventKey());
     getId().setAppId(req.getApplicationId());
+    getId().setLevel(req.getLevel());
     setLogText(req.getLogText());
   }
   
@@ -70,6 +71,7 @@ public class LogEvent implements Serializable{
   @Column(value = "tokens")
   @Indexed@Getter@Setter
   private Set<String> tokens = new HashSet<>();
+  
   @Override
   public boolean equals(Object obj) {
     if (this == obj)

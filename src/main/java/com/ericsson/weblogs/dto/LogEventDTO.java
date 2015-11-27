@@ -35,6 +35,7 @@ public class LogEventDTO {
     this(domain.getId().getAppId(), 
         domain.getLogText(),
         UUIDs.unixTimestamp(domain.getId().getTimestamp()));
+    setLevel(domain.getId().getLevel());
   }
 
   public LogEventDTO() {
@@ -53,7 +54,8 @@ public class LogEventDTO {
     this(appId, logText2, new Date(unixTimestamp));
   }
 
+  private String level;
   private String applicationId, logText;
-  @JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd HH:mm a z")
+  @JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd HH:mm:ss a z")
   private Date timestamp;
 }

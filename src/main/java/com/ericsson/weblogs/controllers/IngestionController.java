@@ -63,7 +63,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api")
 public class IngestionController {
 
-  public static final String RESP_MSG_INV_JSON_FORMAT = "Unrecognized JSON format.";
+  public static final String RESP_MSG_INV_JSON_FORMAT = "Invalid JSON request";
   public static final String RESP_MSG_SUCCESS = "Logged successfully.";
   public static final String RESP_MSG_VALIDATION_ERR = "Mandatory fields missing: ";
   public static final String RESP_MSG_INT_SERV_ERR = "Internal server error.";

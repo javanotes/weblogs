@@ -29,7 +29,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.util.HtmlUtils;
 
+import com.ericsson.weblogs.dto.LogEventDTO;
 import com.ericsson.weblogs.dto.QueryRequest;
 import com.ericsson.weblogs.dto.QueryResponse;
 import com.ericsson.weblogs.service.ILoggingService;
@@ -89,6 +91,14 @@ public class DashboardController {
     try 
     {
       qr = logService.fetchLogsBetweenDates(req);
+      for(LogEventDTO dto : qr.getLogs())
+      {
+        String html = HtmlUtils.htmlEscape(dto.getLogText());
+        html = html.replaceAll("(\r\n|\n)", "<br />");
+        html = html.replaceAll("(\t)", "&nbsp;&nbsp;");
+        dto.setLogText(html);
+      }
+      
     } catch (ServiceException e) {
       log.error("", e);
       qr.setError(e.getMessage());

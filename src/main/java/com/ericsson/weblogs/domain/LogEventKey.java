@@ -48,9 +48,8 @@ public class LogEventKey implements Serializable{
   
   @PrimaryKeyColumn(type = PrimaryKeyType.CLUSTERED, ordinal = 1, name = "event_ts", ordering = Ordering.DESCENDING)
   private UUID timestamp;
-  //@PrimaryKeyColumn(type = PrimaryKeyType.CLUSTERED, ordinal = 2, name = "row_id", ordering = Ordering.ASCENDING)
-  //private UUID rownum;
-
+  @PrimaryKeyColumn(type = PrimaryKeyType.CLUSTERED, ordinal = 2, name = "level")
+  private String level = "INFO";
   @Override
   public String toString() {
     return "[appId=" + appId + ", timestamp=" + new Date(UUIDs.unixTimestamp(timestamp)) + "]";

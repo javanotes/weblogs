@@ -55,7 +55,7 @@ public class WebSecurityInterceptor extends WebSecurityConfigurerAdapter {
   @Override
   public void configure(AuthenticationManagerBuilder auth) throws Exception {
     InMemoryUserDetailsManagerConfigurer<AuthenticationManagerBuilder> authMgr = auth.inMemoryAuthentication();
-    authMgr.withUser("admin").password("root123#").roles("ADMIN");
+    authMgr.withUser("admin").password("root123#").roles("ADMIN");//system user hard coded
     for(Entry<String, String> entry : simpleUserCredentials().getCredentials().entrySet())
     {
      authMgr.withUser(entry.getKey()).password(entry.getValue()).roles("USER");

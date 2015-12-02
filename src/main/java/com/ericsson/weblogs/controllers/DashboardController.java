@@ -95,7 +95,7 @@ public class DashboardController {
       {
         String html = HtmlUtils.htmlEscape(dto.getLogText());
         html = html.replaceAll("(\r\n|\n)", "<br />");
-        html = html.replaceAll("(\t)", "&nbsp;&nbsp;");
+        html = html.replaceAll("(\t)", "&nbsp;&nbsp;&nbsp;&nbsp;");
         dto.setLogText(html);
       }
       

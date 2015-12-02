@@ -82,7 +82,9 @@
 		
 	</div>
 	
+	
 	<script th:inline="javascript">
+		
 		//Note: the CDATA is for Thymeleaf inline processing.
 		//setting a javascript var using a server side attribute
 		
@@ -92,20 +94,6 @@
 		var refresh;
 		var table;
 				
-		function prepareEPTable(epList){
-			var innerHtml = '';
-						
-			//prepare body
-			for(var i=0; i<epList.length; i++){
-				innerHtml += '<tr>';
-				innerHtml += '<td><a>'+epList[i].timestamp+'</a></td>';
-				innerHtml += '<td><a>'+epList[i].logText+'</a></td>';
-				innerHtml += '</tr>';
-			}
-									
-			$('#batchExecPtDetailsTable tbody').html(innerHtml);
-		}
-		
 		$(document).ready(function() {
 			refresh = $('#autoRefresh').is(':checked');
 			
@@ -197,7 +185,7 @@
 			table = $('#batchExecPtDetailsTable')
 			.DataTable({	
 				
-				"bProcesing" : true,
+				"processing" : true,
 			    "serverSide" : true,
 			    "bLenthChange" : false,
 			    "pageLength" : 10,
@@ -223,18 +211,11 @@
 			    "initComplete": function (oSettings, json) {
 			        $("#myPleaseWait").modal("hide");
 			        $('#mainForm').show();
-			        
-			      	//paginate button click event
-					$('#batchExecPtDetailsTable_paginate').on('click','a',function(e){
-						if($(this).text() == 'Next'){
-							
-						}
-						if($(this).text() == 'Previous'){
-							
-						}
-						
-					});
+			        			      	
 			    },
+			    "columnDefs": [
+			                   { className: "wordWrap", "targets": [ 2 ] }
+			                 ],
 			    "columns" : [
 						       {
 						        "title" : "Timestamp",

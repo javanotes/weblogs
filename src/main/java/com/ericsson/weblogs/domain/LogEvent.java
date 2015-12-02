@@ -20,21 +20,26 @@
 package com.ericsson.weblogs.domain;
 
 import java.io.Serializable;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.cassandra.mapping.Column;
-import org.springframework.data.cassandra.mapping.Indexed;
 import org.springframework.data.cassandra.mapping.PrimaryKey;
 import org.springframework.data.cassandra.mapping.Table;
 
+import com.ericsson.weblogs.domain.annot.CustomIndexField;
+import com.ericsson.weblogs.domain.annot.CustomIndexOption;
+import com.ericsson.weblogs.domain.annot.CustomIndexSchema;
+import com.ericsson.weblogs.domain.annot.CustomIndexed;
+import com.ericsson.weblogs.domain.annot.FullTextSearchable;
+import com.ericsson.weblogs.domain.annot.LuceneIndex;
 import com.ericsson.weblogs.dto.LogRequest;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Table(value = "data_points")
+@CustomIndexed(className = "com.stratio.cassandra.lucene.Index", option = @CustomIndexOption(schema = @CustomIndexSchema(fields = 
+{@CustomIndexField(field = "log_text", type = "text"), @CustomIndexField(field = "event_ts", type = "uuid", sorted = true)})))
 public class LogEvent implements Serializable{
 
   
@@ -66,11 +71,12 @@ public class LogEvent implements Serializable{
   private static final long serialVersionUID = 6486945252184335817L;
   @PrimaryKey@Getter@Setter
   private LogEventKey id;
-  @Column(value = "log_text")@Getter@Setter
+  
+  @FullTextSearchable@Column(value = "log_text")@Getter@Setter
   private String logText;
-  @Column(value = "tokens")
-  @Indexed@Getter@Setter
-  private Set<String> tokens = new HashSet<>();
+  
+  @Column(value = "lucene")@Getter@Setter@LuceneIndex
+  private String lucene;
   
   @Override
   public boolean equals(Object obj) {

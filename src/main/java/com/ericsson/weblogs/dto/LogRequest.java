@@ -53,7 +53,7 @@ public class LogRequest implements Serializable{
   }
   @NotEmpty
   private String applicationId;//not null
-  private String level;
+  private String level = "INFO";
   private String logText;
   private Set<String> searchTerms = new HashSet<>();
 }

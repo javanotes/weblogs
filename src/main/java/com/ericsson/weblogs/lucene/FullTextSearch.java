@@ -33,6 +33,9 @@ import org.springframework.stereotype.Component;
 import com.ericsson.weblogs.utils.CommonHelper;
 
 import lombok.extern.slf4j.Slf4j;
+/**
+ * @deprecated - Using stratio lucene plugin
+ */
 @Component
 @Slf4j
 public class FullTextSearch {

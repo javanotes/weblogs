@@ -40,13 +40,22 @@ import org.springframework.data.cassandra.mapping.Column;
 import org.springframework.data.cassandra.mapping.Indexed;
 import org.springframework.data.cassandra.mapping.Table;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.util.StringUtils;
 
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.TableMetadata;
+import com.ericsson.weblogs.domain.annot.CustomIndexField;
+import com.ericsson.weblogs.domain.annot.CustomIndexOption;
+import com.ericsson.weblogs.domain.annot.CustomIndexed;
+import com.ericsson.weblogs.domain.annot.LuceneIndex;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import com.stratio.cassandra.lucene.builder.Builder;
+import com.stratio.cassandra.lucene.builder.index.Index;
+import com.stratio.cassandra.lucene.builder.index.schema.Schema;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -54,6 +63,76 @@ class EntityFinderSessionFactoryBean extends CassandraSessionFactoryBean
 {
   public EntityFinderSessionFactoryBean() {
     super();
+  }
+  @Getter
+  private String logTextColumn;
+  private void createCustomIndex(Class<?> entity, String table)
+  {
+
+    //create custom indexes
+    CustomIndexed cidx = entity.getAnnotation(CustomIndexed.class);
+    String colName = null;
+            
+    for(Field f : entity.getDeclaredFields())
+    {
+      if(f.isAnnotationPresent(LuceneIndex.class)){
+        try {
+          colName = f.getAnnotation(Column.class).value();
+          break;
+        } catch (Exception e) {
+          throw new IllegalArgumentException("@Column annotation not present on an @LuceneIndex column field "+f);
+        }
+      }
+    }
+    if(!StringUtils.hasText(colName))
+      throw new IllegalArgumentException("@Column name not present on an @LuceneIndex column field ");
+      
+    if(!StringUtils.hasText(cidx.className()))
+      throw new IllegalArgumentException("@CustomIndexed className is empty ");
+    
+    Index c_idx = Builder.index(table, colName).name("c_idx_" + colName);
+    c_idx.defaultAnalyzer("english").refreshSeconds(1);
+    
+    String idxDDL;
+    CustomIndexOption opt = cidx.option();
+    Schema schema = Builder.schema();
+    for(CustomIndexField cf : opt.schema().fields())
+    {
+      
+      switch(cf.type())
+      {
+      case "text":
+        schema.mapper(cf.field(), Builder.textMapper().analyzer(cf.analyzer()).sorted(cf.sorted()));
+        logTextColumn = cf.field();//we know we are indexing only this column
+        break;
+      case "date":
+        schema.mapper(cf.field(), Builder.dateMapper().pattern(cf.pattern()).sorted(cf.sorted()));
+        break;
+      case "double":
+        schema.mapper(cf.field(), Builder.doubleMapper().sorted(cf.sorted()));
+        break;
+      case "integer":
+        schema.mapper(cf.field(), Builder.integerMapper().sorted(cf.sorted()));
+        break;
+      case "long":
+        schema.mapper(cf.field(), Builder.longMapper().sorted(cf.sorted()));
+        break;
+      case "uuid":
+        schema.mapper(cf.field(), Builder.uuidMapper().sorted(cf.sorted()));
+        break;
+        default: break;
+      }
+      
+    }
+    
+    c_idx.schema(schema);
+    
+    idxDDL = c_idx.build().replaceFirst("CREATE CUSTOM INDEX", "CREATE CUSTOM INDEX IF NOT EXISTS");
+    
+    log.debug("Custom index DDL: "+idxDDL);
+    
+    admin.execute(idxDDL);
+  
   }
   
   /**
@@ -98,6 +177,7 @@ class EntityFinderSessionFactoryBean extends CassandraSessionFactoryBean
       
       //create tables if not exists
       final String table = AnnotationUtils.findAnnotation(entity, Table.class).value();
+      
       admin.createTable(true, CqlIdentifier.cqlId(table), entity, null); 
       
       //created indexes if not exists
@@ -113,10 +193,8 @@ class EntityFinderSessionFactoryBean extends CassandraSessionFactoryBean
             throw new IllegalArgumentException("@Column annotation not present on an @Indexed column field "+field);
           }
           CreateIndexSpecification idx = new CreateIndexSpecification()
-          .tableName(table)
-          .ifNotExists(true)
-          .columnName(colName)
-          .name("idx_"+colName);//throw exception if anything fails
+              .tableName(table).ifNotExists(true).columnName(colName)
+              .name("idx_" + colName);//throw exception if anything fails
           admin.execute(idx);
           
         }
@@ -127,6 +205,13 @@ class EntityFinderSessionFactoryBean extends CassandraSessionFactoryBean
           return field.isAnnotationPresent(Indexed.class);
         }
       });
+      
+      //custom index
+      if(entity.isAnnotationPresent(CustomIndexed.class))
+      {
+        createCustomIndex(entity, table);
+      }
+      
     }
   }
   @Override

@@ -32,11 +32,15 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-security")
     compile("org.springframework.boot:spring-boot-starter-thymeleaf")
     compile("org.projectlombok:lombok:1.16.6")
-    compile('org.apache.lucene:lucene-analyzers-common:5.3.1')
+    //compile('org.apache.lucene:lucene-analyzers-common:5.3.1')
     compile('org.springframework.data:spring-data-cassandra:1.3.0.RELEASE')
     compile('com.datastax.cassandra:cassandra-driver-core:2.1.8')
     compile('org.jparsec:jparsec:2.2.1')
-    
+    compile('com.stratio.cassandra:cassandra-lucene-index-plugin:2.2.3.0'){
+    	transitive = false
+    }
+    compile('com.stratio.cassandra:cassandra-lucene-index-builder:2.2.3.0')
+        
     compile("org.webjars:jquery:2.1.3")
   	compile("org.webjars:font-awesome:4.3.0")
   	compile("org.webjars:bootstrap:3.3.2"){

@@ -21,7 +21,6 @@ package com.ericsson.weblogs.service.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +35,6 @@ import com.ericsson.weblogs.dto.LogEventDTO;
 import com.ericsson.weblogs.dto.LogRequest;
 import com.ericsson.weblogs.dto.QueryRequest;
 import com.ericsson.weblogs.dto.QueryResponse;
-import com.ericsson.weblogs.lucene.FullTextSearch;
 import com.ericsson.weblogs.service.ILoggingService;
 import com.ericsson.weblogs.service.ServiceException;
 import com.google.common.base.Function;
@@ -50,8 +48,6 @@ public class LoggingService implements ILoggingService {
   private LogEventIngestionDAO ingestor;
   @Autowired
   private LogEventFinderPagingDAO finder;
-  @Autowired
-  private FullTextSearch ftsEngine;
   
   @Override
   public void ingestLoggingRequest(LogRequest req) throws ServiceException
@@ -60,16 +56,15 @@ public class LoggingService implements ILoggingService {
     {
       
       LogEvent l;
-      Set<String> t;
-      
       l = new LogEvent(req);
-      t = ftsEngine.tokenizeText(req.getLogText(), req.getSearchTerms(), false);
+      
+      /*t = ftsEngine.tokenizeText(req.getLogText(), req.getSearchTerms(), false);
       
       if (log.isDebugEnabled()) {
         log.debug(
             "Got tokens: " + t + " for log text => " + req.getLogText());
       }
-      l.getTokens().addAll(t);
+      l.getTokens().addAll(t);*/
       
       ingestor.insert(l);
     } 
@@ -87,18 +82,19 @@ public class LoggingService implements ILoggingService {
     {
       
       LogEvent l;
-      Set<String> t;
       List<LogEvent> events = new ArrayList<>();
       
       for (LogRequest req : requests) 
       {
         l = new LogEvent(req);
-        t = ftsEngine.tokenizeText(req.getLogText(), req.getSearchTerms(), false);
+        
+        /*t = ftsEngine.tokenizeText(req.getLogText(), req.getSearchTerms(), false);
         if (log.isDebugEnabled()) {
           log.debug(
               "Got tokens: " + t + " for log text => " + req.getLogText());
         }
-        l.getTokens().addAll(t);
+        l.getTokens().addAll(t);*/
+        
         events.add(l);
       }
 

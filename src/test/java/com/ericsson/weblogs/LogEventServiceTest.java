@@ -218,7 +218,7 @@ public class LogEventServiceTest {
     }
     try {
       logService.ingestLoggingRequests(requests);
-      
+      Thread.sleep(1000);//for index update
     } catch (Exception e) {
       Assert.fail(e.getMessage());
     }

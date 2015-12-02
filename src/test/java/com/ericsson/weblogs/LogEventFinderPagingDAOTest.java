@@ -41,7 +41,6 @@ import com.ericsson.weblogs.dao.LogEventIngestionDAO;
 import com.ericsson.weblogs.dao.LogEventRepository;
 import com.ericsson.weblogs.domain.LogEvent;
 import com.ericsson.weblogs.domain.LogEventKey;
-import com.ericsson.weblogs.lucene.FullTextSearch;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = Application.class)
@@ -418,11 +417,6 @@ public class LogEventFinderPagingDAOTest {
     
   }
   
- 
-  @Autowired
-  private FullTextSearch fts;
-  
-  
   @Test
   public void testFindByAppIdWithTermAndDate()
   {
@@ -441,38 +435,40 @@ public class LogEventFinderPagingDAOTest {
       event.getId().setAppId((i % 2 == 0) ? appId : appId1);
       event.getId().setTimestamp((i % 2 == 0) ? UUIDs.endOf(yesterday.getTimeInMillis()) : UUIDs.timeBased());
       yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
-      event.setTokens(fts.tokenizeText(event.getLogText()));
+      //event.setTokens(fts.tokenizeText(event.getLogText()));
       requests.add(event);
     }
+    
     try 
     {
       iDao.ingestEntitiesAsync(requests);
-      
-      List<LogEvent> page1 = fDao.findByAppIdAfterDateContains(appId1, "lorem", null, yesterday.getTime(), batchSize, false);
+      Thread.sleep(1000);//for index update
+      List<LogEvent> page1 = fDao.findByAppIdAfterDateContains(appId1, "lorem", null, yesterday.getTime(), 3, false);
       Assert.assertNotNull("Found null", page1);
-      Assert.assertEquals("Incorrect resultset size after, ", batchSize/2, page1.size());
+      Assert.assertEquals("Incorrect resultset size after, ", 3, page1.size());
       
       LogEvent last = page1.get(page1.size()-1);
-      page1 = fDao.findByAppIdAfterDateContains(appId1, "lorem", last, yesterday.getTime(), batchSize, false);
+      page1 = fDao.findByAppIdAfterDateContains(appId1, "lorem", last, yesterday.getTime(), 3, false);
       Assert.assertNotNull("Found null", page1);
-      Assert.assertTrue("Incorrect resultset size for next page after, ", page1.isEmpty());
+      Assert.assertEquals("Incorrect resultset size after, ", 2, page1.size());
       
-      page1 = fDao.findByAppIdAfterDateContains(appId, "lorem", null, yesterday.getTime(), batchSize, false);
+      last = page1.get(0);
+      page1 = fDao.findByAppIdAfterDateContains(appId1, "lorem", last, yesterday.getTime(), 3, true);
       Assert.assertNotNull("Found null", page1);
-      Assert.assertTrue("Incorrect resultset size for no match appId, ", page1.isEmpty());
+      Assert.assertEquals("Incorrect resultset size after, ", 3, page1.size());
       
       page1 = fDao.findByAppIdBeforeDateContains(appId1, "lorem", null, new Date(today), batchSize, false);
       Assert.assertNotNull("Found null", page1);
       Assert.assertTrue("Incorrect resultset size for no match, ", page1.isEmpty());
       
-      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "lorem", null, yesterday.getTime(), new Date(), batchSize, false);
+      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "lorem", null, yesterday.getTime(), new Date(), 3, false);
       Assert.assertNotNull("Found null", page1);
-      Assert.assertEquals("Incorrect resultset size between, ", batchSize/2, page1.size());
+      Assert.assertEquals("Incorrect resultset size between, ", 3, page1.size());
       
       last = page1.get(page1.size()-1);
-      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "lorem", last, yesterday.getTime(), new Date(), batchSize, false);
+      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "lorem", last, yesterday.getTime(), new Date(), 3, false);
       Assert.assertNotNull("Found null", page1);
-      Assert.assertTrue("Incorrect resultset size for next page between , ", page1.isEmpty());
+      Assert.assertEquals("Incorrect resultset size between, ", 2, page1.size());
      
       
     } catch (Exception e) {

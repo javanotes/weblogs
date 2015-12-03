@@ -20,6 +20,7 @@
 
 					<input type="text" id="reportrange" />
 			</td>
+			<td><label>Log Level </label>&nbsp;&nbsp;<input type="text" id="level" name="level" /></td>
 			<td>
 				<button id="btnRefresh" class="btn btn-primary">
 					<span class="glyphicon glyphicon-search"></span> Search
@@ -104,8 +105,8 @@
 		    $('#reportrange').daterangepicker(
 		        {
 		          ranges: {
-		            'Today': [moment(), moment()],
-		            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+		            'Today': [moment(), moment().add(1, 'days')],
+		            'Yesterday': [moment().subtract(1, 'days'), moment()],
 		            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
 		            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
 		            'This Month': [moment().startOf('month'), moment().endOf('month')],
@@ -197,6 +198,7 @@
 			        	return $.extend( {}, d, {
 			        		"p_term" : term,
 				            "p_appid" : appId,
+				            "p_level" : $('#level').val(),
 				            "p_dtrange" : dtRange,
 				            "p_refresh" : refresh,
 				            "p_frowid" : firstRowUUID,
@@ -219,7 +221,7 @@
 			    "columns" : [
 						       {
 						        "title" : "Timestamp",
-						        "mDataProp" : "timestamp",
+						        "mDataProp" : "timestampText",
 						        "orderable": false
 						       },
 						       {

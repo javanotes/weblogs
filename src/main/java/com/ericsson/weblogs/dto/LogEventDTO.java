@@ -23,7 +23,6 @@ import java.util.Date;
 
 import com.datastax.driver.core.utils.UUIDs;
 import com.ericsson.weblogs.domain.LogEvent;
-import com.fasterxml.jackson.annotation.JsonFormat;
 
 import lombok.Data;
 
@@ -35,7 +34,7 @@ public class LogEventDTO {
     this(domain.getId().getAppId(), 
         domain.getLogText(),
         UUIDs.unixTimestamp(domain.getId().getTimestamp()));
-    setLevel(domain.getId().getLevel());
+    setLevel(domain.getLevel());
   }
 
   public LogEventDTO() {
@@ -53,9 +52,9 @@ public class LogEventDTO {
   public LogEventDTO(String appId, String logText2, long unixTimestamp) {
     this(appId, logText2, new Date(unixTimestamp));
   }
-
+  
   private String level;
   private String applicationId, logText;
-  @JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd HH:mm:ss a z")
   private Date timestamp;
+  private String timestampText;
 }

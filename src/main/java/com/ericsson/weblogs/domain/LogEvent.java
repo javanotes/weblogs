@@ -32,14 +32,17 @@ import com.ericsson.weblogs.domain.annot.CustomIndexSchema;
 import com.ericsson.weblogs.domain.annot.CustomIndexed;
 import com.ericsson.weblogs.domain.annot.FullTextSearchable;
 import com.ericsson.weblogs.domain.annot.LuceneIndex;
+import com.ericsson.weblogs.domain.annot.SearchIndexed;
 import com.ericsson.weblogs.dto.LogRequest;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Table(value = "data_points")
-@CustomIndexed(className = "com.stratio.cassandra.lucene.Index", option = @CustomIndexOption(schema = @CustomIndexSchema(fields = 
-{@CustomIndexField(field = "log_text", type = "text"), @CustomIndexField(field = "event_ts", type = "uuid", sorted = true)})))
+@CustomIndexed(className = "com.stratio.cassandra.lucene.Index", option = @CustomIndexOption(schema = @CustomIndexSchema(fields = {
+    @CustomIndexField(field = "log_text", type = "text"),
+    @CustomIndexField(field = "event_ts", type = "uuid", sorted = true),
+    @CustomIndexField(field = "level", type = "string") }) ) )
 public class LogEvent implements Serializable{
 
   
@@ -61,7 +64,7 @@ public class LogEvent implements Serializable{
   {
     setId(new LogEventKey());
     getId().setAppId(req.getApplicationId());
-    getId().setLevel(req.getLevel());
+    setLevel(req.getLevel());
     setLogText(req.getLogText());
   }
   
@@ -74,6 +77,9 @@ public class LogEvent implements Serializable{
   
   @FullTextSearchable@Column(value = "log_text")@Getter@Setter
   private String logText;
+  
+  @Column(value = "level")@Getter@Setter@SearchIndexed(ordinal = 0)
+  private String level = "INFO";
   
   @Column(value = "lucene")@Getter@Setter@LuceneIndex
   private String lucene;

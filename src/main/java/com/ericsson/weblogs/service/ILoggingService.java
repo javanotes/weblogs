@@ -44,12 +44,14 @@ public interface ILoggingService {
 
  
   /**
+   * @deprecated - TBD. Not all functionality implemented
    * @param request
    * @return
    * @throws ServiceException
    */
   QueryResponse fetchLogsFromDate(QueryRequest request) throws ServiceException;
   /**
+   * @deprecated - TBD. Not all functionality implemented
    * @param request
    * @return
    * @throws ServiceException

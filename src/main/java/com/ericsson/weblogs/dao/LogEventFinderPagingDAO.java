@@ -23,7 +23,9 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.PostConstruct;
@@ -40,13 +42,18 @@ import com.datastax.driver.core.querybuilder.Select.Where;
 import com.ericsson.weblogs.domain.LogEvent;
 import com.ericsson.weblogs.domain.annot.FullTextSearchable;
 import com.ericsson.weblogs.domain.annot.LuceneIndex;
+import com.ericsson.weblogs.domain.annot.SearchIndexed;
 import com.ericsson.weblogs.utils.CommonHelper;
 import com.stratio.cassandra.lucene.builder.Builder;
+import com.stratio.cassandra.lucene.builder.search.condition.BooleanCondition;
 import com.stratio.cassandra.lucene.builder.search.sort.SortField;
 
 import lombok.extern.slf4j.Slf4j;
 
-
+/**
+ * <b>NOTE:</b> Only {@link #findByAppIdBeforeDateContains()} and {@link #findByAppIdBetweenDates()}
+ * have been properly implemented. The rest are TODO
+ */
 @Slf4j@Repository
 public class LogEventFinderPagingDAO extends LogEventDAO{
 
@@ -55,6 +62,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
   
   private String luceneCol;
   private String logTextCol;
+  private final Map<Integer, String> searchFields = new HashMap<>();
   
   @PostConstruct
   private void init()
@@ -71,6 +79,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     }
     
     StringBuilder s = new  StringBuilder("select ");
+    
     for(Field f : allFields.values())
     {
       String c = f.isAnnotationPresent(PrimaryKeyColumn.class)
@@ -87,6 +96,10 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
       if(f.isAnnotationPresent(FullTextSearchable.class))
       {
         logTextCol = f.getAnnotation(Column.class).value();
+      }
+      if(f.isAnnotationPresent(SearchIndexed.class))
+      {
+        searchFields.put(f.getAnnotation(SearchIndexed.class).ordinal(), f.getAnnotation(Column.class).value());
       }
     }
     
@@ -160,16 +173,35 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
   /*
    * TODO: Not sure why needing to use long in maxtimeuuid and String in mintimeuuid ???!!!
    */
-    
-  public List<LogEvent> findByAppIdBetweenDatesContains(final String appId, String token, LogEvent lastRow, final Date fromDate, final Date toDate, int limit, boolean isPrevPaging)
+   
+  /**
+   * Both dates inclusive
+   * @param appId
+   * @param token
+   * @param level
+   * @param lastRow
+   * @param fromDate
+   * @param toDate
+   * @param limit
+   * @param isPrevPaging
+   * @return
+   */
+  public List<LogEvent> findByAppIdBetweenDatesContains(final String appId, String token, String level, LogEvent lastRow, final Date fromDate, final Date toDate, int limit, boolean isPrevPaging)
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
     Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
       
-    w.and(QueryBuilder.eq(luceneCol, Builder.search()
-        .filter(Builder.phrase(logTextCol, token))
-        .sort(SortField.field(timeuuidCol).reverse(isPrevPaging))
-        .build()));
+    BooleanCondition filter = Builder.bool();
+    filter.must(Builder.phrase(logTextCol, token));
+    if(StringUtils.hasText(level)){
+      if(searchFields.containsKey(0))
+        filter.must(Builder.match(searchFields.get(0), level));
+      else
+        log.warn("-- LOG LEVEL SEARCH WILL BE IGNORED, since the @SearchIndexed annotation was not configured!");
+      
+    }
+    
+    w.and(QueryBuilder.eq(luceneCol, Builder.search().filter(filter).sort(SortField.field(timeuuidCol).reverse(isPrevPaging)).build()));
     
     if(lastRow != null)
     {
@@ -296,6 +328,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
   /**
    * both dates inclusive
    * @param appId
+   * @param level
    * @param lastRow
    * @param fromDate
    * @param toDate
@@ -303,10 +336,21 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
    * @param isPrevPaging
    * @return
    */
-  public List<LogEvent> findByAppIdBetweenDates(String appId, LogEvent lastRow, Date fromDate, Date toDate, int limit, boolean isPrevPaging)
+  public List<LogEvent> findByAppIdBetweenDates(String appId, String level, LogEvent lastRow, Date fromDate, Date toDate, int limit, boolean isPrevPaging)
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
     Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
+    if (StringUtils.hasText(level)) {
+      if(searchFields.containsKey(0)){
+        w.and(QueryBuilder.eq(luceneCol,
+            Builder.search().filter(Builder.match(searchFields.get(0), level))
+                .sort(SortField.field(timeuuidCol).reverse(isPrevPaging))
+                .build()));
+      }
+      else
+        log.warn("-- LOG LEVEL SEARCH WILL BE IGNORED, since the @SearchIndexed annotation was not configured!");
+      
+    }
     if(lastRow != null)
     {
       if(isPrevPaging){
@@ -324,9 +368,6 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
       w.and(QueryBuilder.gte(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(fromDate))))
       .and(QueryBuilder.lte(timeuuidCol, QueryBuilder.fcall(MAXTIMEUUID, toDate)));
     }
-    
-    if(isPrevPaging)
-      sel.orderBy(QueryBuilder.asc(timeuuidCol));
     
     log.debug(">>>>>>>>> Firing select query: "+sel.toString());
     List<LogEvent> events =  cassandraOperations.select(sel, LogEvent.class);
@@ -412,8 +453,16 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     }
     return events;
   }
-  
-  public long count(final String appId, String token, final Date fromDate, final Date toDate)
+  /**
+   * 
+   * @param appId
+   * @param token
+   * @param level
+   * @param fromDate
+   * @param toDate
+   * @return
+   */
+  public long count(final String appId, String token, String level, final Date fromDate, final Date toDate)
   {
     Select sel = QueryBuilder.select().countAll().from(table);
     Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
@@ -431,13 +480,19 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
           QueryBuilder.lt(timeuuidCol, QueryBuilder.fcall(MINTIMEUUID, CommonHelper.formatAsCassandraDate(toDate))));
     }
       
-    if(StringUtils.hasText(token)){
-      
-      w.and(QueryBuilder.eq(luceneCol, Builder.search()
-          .filter(Builder.phrase(logTextCol, token)).build()));
+    BooleanCondition logic = Builder.bool();
+    boolean wasFiltered = false;
+    if(StringUtils.hasText(level)){
+      logic.must(Builder.match(searchFields.get(0), level));
+      wasFiltered = true;
     }
-      
-    
+    if(StringUtils.hasText(token)){
+      logic.must(Builder.phrase(logTextCol, token));
+      wasFiltered = true;
+    }
+    if(wasFiltered){
+      w.and(QueryBuilder.eq(luceneCol, Builder.search().filter(logic).build()));
+    }
     log.debug(">>>>>>>>> Firing count(*) query: "+sel.toString());
     Row row = cassandraOperations.query(sel).one();
     return row.getLong(0);

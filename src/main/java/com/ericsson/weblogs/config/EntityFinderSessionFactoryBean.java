@@ -105,6 +105,9 @@ class EntityFinderSessionFactoryBean extends CassandraSessionFactoryBean
         schema.mapper(cf.field(), Builder.textMapper().analyzer(cf.analyzer()).sorted(cf.sorted()));
         logTextColumn = cf.field();//we know we are indexing only this column
         break;
+      case "string":
+        schema.mapper(cf.field(), Builder.stringMapper().sorted(cf.sorted()));
+        break;
       case "date":
         schema.mapper(cf.field(), Builder.dateMapper().pattern(cf.pattern()).sorted(cf.sorted()));
         break;

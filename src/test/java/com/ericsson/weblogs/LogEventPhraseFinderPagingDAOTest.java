@@ -103,16 +103,16 @@ public class LogEventPhraseFinderPagingDAOTest {
       iDao.ingestAsync(requests);
       Thread.sleep(1000);//for index updates
       
-      long count = fDao.count(appId, "", null, null);
+      long count = fDao.count(appId, "", null, null, null);
       Assert.assertEquals("Incorrect count", batchSize, count);
       
-      count = fDao.count(appId, "blaah", null, null);
+      count = fDao.count(appId, "blaah", null, null, null);
       Assert.assertEquals("Incorrect count using term", batchSize, count);
       
-      count = fDao.count(appId, "blaah bla logging", null, null);
+      count = fDao.count(appId, "blaah bla logging", null, null, null);
       Assert.assertEquals("Incorrect count using phrase", batchSize, count);
       
-      count = fDao.count(appId, "NOTPRESENT", null, null);
+      count = fDao.count(appId, "NOTPRESENT", null, null, null);
       Assert.assertEquals("Incorrect count", 0, count);
       
       Calendar yesterday = GregorianCalendar.getInstance();
@@ -121,10 +121,10 @@ public class LogEventPhraseFinderPagingDAOTest {
       Calendar tomorrow = GregorianCalendar.getInstance();
       tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)+1);
       
-      count = fDao.count(appId, "", tomorrow.getTime(), null);
+      count = fDao.count(appId, "", "",tomorrow.getTime(), null);
       Assert.assertEquals("Incorrect count", 0, count);
       
-      count = fDao.count(appId, "", null, tomorrow.getTime());
+      count = fDao.count(appId, "", "INFO", null, tomorrow.getTime());
       Assert.assertEquals("Incorrect count", batchSize, count);
       
       
@@ -177,31 +177,31 @@ public class LogEventPhraseFinderPagingDAOTest {
       iDao.ingestEntitiesAsync(requests);
       Thread.sleep(1000);//for index updates
       
-      long count = fDao.count(appId, "", yesterday.getTime(), tomorrow.getTime());
+      long count = fDao.count(appId, "", "", yesterday.getTime(), tomorrow.getTime());
       Assert.assertEquals("Incorrect count for between: ", batchSize+2, count);
       
-      count = fDao.count(appId, "blaah bla logging", yesterday.getTime(), tomorrow.getTime());
+      count = fDao.count(appId, "blaah bla logging", "", yesterday.getTime(), tomorrow.getTime());
       Assert.assertEquals("Incorrect count for between using phrase: ", batchSize+2, count);
       
-      count = fDao.count(appId, "logging", yesterday.getTime(), tomorrow.getTime());
+      count = fDao.count(appId, "logging", "", yesterday.getTime(), tomorrow.getTime());
       Assert.assertEquals("Incorrect count for between using term: ", batchSize+2, count);
       
-      count = fDao.count(appId, "", yesterday.getTime(), null);
+      count = fDao.count(appId, "", "INFO", yesterday.getTime(), null);
       Assert.assertEquals("Incorrect count for after: ", batchSize+1, count);
       
-      count = fDao.count(appId, "blaah bla logging", yesterday.getTime(), null);
+      count = fDao.count(appId, "blaah bla logging", "", yesterday.getTime(), null);
       Assert.assertEquals("Incorrect count for after using phrase: ", batchSize+1, count);
       
-      count = fDao.count(appId, "blaah", yesterday.getTime(), null);
+      count = fDao.count(appId, "blaah", "INFO", yesterday.getTime(), null);
       Assert.assertEquals("Incorrect count for after using term: ", batchSize+1, count);
       
-      count = fDao.count(appId, "", null, tomorrow.getTime());
+      count = fDao.count(appId, "", "INFO", null, tomorrow.getTime());
       Assert.assertEquals("Incorrect count for before: ", batchSize+1, count);
       
-      count = fDao.count(appId, "blaah bla logging", null, tomorrow.getTime());
+      count = fDao.count(appId, "blaah bla logging", "INFO", null, tomorrow.getTime());
       Assert.assertEquals("Incorrect count for before using phrase: ", batchSize+1, count);
       
-      count = fDao.count(appId, "bla", null, tomorrow.getTime());
+      count = fDao.count(appId, "bla", "INFO", null, tomorrow.getTime());
       Assert.assertEquals("Incorrect count for before using term: ", batchSize+1, count);
       
     } catch (Exception e) {
@@ -254,14 +254,19 @@ public class LogEventPhraseFinderPagingDAOTest {
       Assert.assertNotNull("Found null", page1);
       Assert.assertTrue("Incorrect resultset size for no match, ", page1.isEmpty());
       
-      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "Lorem Ipsum", null, yesterday.getTime(), new Date(), 3, false);
+      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "Lorem Ipsum", "", null, yesterday.getTime(), new Date(), 3, false);
       Assert.assertNotNull("Found null", page1);
       Assert.assertEquals("Incorrect resultset size between, ", 3, page1.size());
       
       last = page1.get(page1.size()-1);
-      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "Lorem Ipsum", last, yesterday.getTime(), new Date(), 3, false);
+      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "Lorem Ipsum", "INFO", last, yesterday.getTime(), new Date(), 3, false);
       Assert.assertNotNull("Found null", page1);
       Assert.assertEquals("Incorrect resultset size between, ", 2, page1.size());
+      //previous page
+      last = page1.get(0);
+      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "Lorem Ipsum", "INFO", last, yesterday.getTime(), new Date(), 3, true);
+      Assert.assertNotNull("Found null", page1);
+      Assert.assertEquals("Incorrect resultset size between, ", 3, page1.size());
      
       
     } catch (Exception e) {

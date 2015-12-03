@@ -22,6 +22,7 @@ package com.ericsson.weblogs.controllers;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -36,6 +37,7 @@ import com.ericsson.weblogs.dto.QueryRequest;
 import com.ericsson.weblogs.dto.QueryResponse;
 import com.ericsson.weblogs.service.ILoggingService;
 import com.ericsson.weblogs.service.ServiceException;
+import com.ericsson.weblogs.utils.CommonHelper;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,6 +53,7 @@ public class DashboardController {
   public @ResponseBody QueryResponse fetchLogs(@RequestParam int start,//from datatables
       @RequestParam int length,//from datatables
       @RequestParam(value = "p_appid") String appId,
+      @RequestParam(value = "p_level", required = false) String level,
       @RequestParam(value = "p_dtrange") String dateRange,
       @RequestParam(value = "p_term", required = false) String searchTerm,
       @RequestParam(value = "p_frowid", required = false) String firstRow,
@@ -69,6 +72,7 @@ public class DashboardController {
     req.setFetchSize(pageSize);
     req.setFetchMarkUUID(isPrev ? firstRow : lastRow);
     req.setFetchPrev(isPrev);
+    req.setLevel(level);
     
     // 11/19/2015 - 11/19/2015
     SimpleDateFormat sdf = new SimpleDateFormat(DATE_PICKER_FORMAT);
@@ -91,12 +95,15 @@ public class DashboardController {
     try 
     {
       qr = logService.fetchLogsBetweenDates(req);
+      SimpleDateFormat format = new SimpleDateFormat(CommonHelper.ISO8601_TS_MILLIS);
+      format.setTimeZone(TimeZone.getDefault());
       for(LogEventDTO dto : qr.getLogs())
       {
         String html = HtmlUtils.htmlEscape(dto.getLogText());
         html = html.replaceAll("(\r\n|\n)", "<br />");
         html = html.replaceAll("(\t)", "&nbsp;&nbsp;&nbsp;&nbsp;");
         dto.setLogText(html);
+        dto.setTimestampText(format.format(dto.getTimestamp()));
       }
       
     } catch (ServiceException e) {

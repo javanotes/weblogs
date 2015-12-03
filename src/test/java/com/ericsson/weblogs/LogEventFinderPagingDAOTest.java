@@ -270,6 +270,7 @@ public class LogEventFinderPagingDAOTest {
     try 
     {
       iDao.ingestEntitiesAsync(requests);
+      Thread.sleep(1000);//for index update
       
       Calendar before5Days = GregorianCalendar.getInstance();
       before5Days.set(Calendar.DATE, before5Days.get(Calendar.DATE)-5);
@@ -277,7 +278,7 @@ public class LogEventFinderPagingDAOTest {
       Calendar after5Days = GregorianCalendar.getInstance();
       after5Days.set(Calendar.DATE, after5Days.get(Calendar.DATE)+5);
       
-      List<LogEvent> page1 = fDao.findByAppIdBetweenDates(appId, null, before5Days.getTime(), after5Days.getTime(), batchSize/2, false);
+      List<LogEvent> page1 = fDao.findByAppIdBetweenDates(appId, "", null, before5Days.getTime(), after5Days.getTime(), batchSize/2, false);
       Assert.assertNotNull("Found null", page1);
       Assert.assertEquals("Incorrect resultset size 1st page.", batchSize/2, page1.size());
       
@@ -289,10 +290,11 @@ public class LogEventFinderPagingDAOTest {
       Calendar today = new GregorianCalendar();
       Assert.assertEquals(today.get(Calendar.DAY_OF_YEAR)+1, lastDateCalendar.get(Calendar.DAY_OF_YEAR));
       
-      List<LogEvent> page2 = fDao.findByAppIdBetweenDates(appId, last, before5Days.getTime(), after5Days.getTime(), batchSize/2, false);
+      List<LogEvent> page2 = fDao.findByAppIdBetweenDates(appId, "INFO", last, before5Days.getTime(), after5Days.getTime(), batchSize/2, false);
       Assert.assertNotNull("Found null", page2);
       Assert.assertEquals("Incorrect resultset size 1st page.", batchSize/2, page2.size());
            
+      LogEvent firstOfPage2 = page2.get(0);
       for(LogEvent l : page1)
       {
         Assert.assertFalse("Duplicate data in pages ", page2.contains(l));
@@ -308,9 +310,13 @@ public class LogEventFinderPagingDAOTest {
       
       Assert.assertEquals(today.get(Calendar.DAY_OF_YEAR)-5, lastDateCalendar.get(Calendar.DAY_OF_YEAR));
       
-      page2 = fDao.findByAppIdBetweenDates(appId, last, before5Days.getTime(), after5Days.getTime(), batchSize/2, false);
+      page2 = fDao.findByAppIdBetweenDates(appId, "", last, before5Days.getTime(), after5Days.getTime(), batchSize/2, false);
       Assert.assertNotNull("Found null", page2);
       Assert.assertTrue("Should be empty 3rd page. ", page2.isEmpty());
+      
+      page2 = fDao.findByAppIdBetweenDates(appId, "INFO", firstOfPage2, before5Days.getTime(), after5Days.getTime(), batchSize/2, true);
+      Assert.assertNotNull("Found null", page2);
+      Assert.assertEquals("Incorrect resultset size 1st page.", batchSize/2, page2.size());
       
     } catch (Exception e) {
       Assert.fail(e.getMessage());
@@ -334,11 +340,12 @@ public class LogEventFinderPagingDAOTest {
     try 
     {
       iDao.ingestAsync(requests);
+      Thread.sleep(1000);
       
-      long count = fDao.count(appId, "", null, null);
+      long count = fDao.count(appId, "", "INFO", null, null);
       Assert.assertEquals("Incorrect count", batchSize, count);
       
-      count = fDao.count(appId, "NOTPRESENT", null, null);
+      count = fDao.count(appId, "NOTPRESENT", "INFO", null, null);
       Assert.assertEquals("Incorrect count", 0, count);
       
       Calendar yesterday = GregorianCalendar.getInstance();
@@ -347,10 +354,10 @@ public class LogEventFinderPagingDAOTest {
       Calendar tomorrow = GregorianCalendar.getInstance();
       tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)+1);
       
-      count = fDao.count(appId, "", tomorrow.getTime(), null);
+      count = fDao.count(appId, "", "INFO", tomorrow.getTime(), null);
       Assert.assertEquals("Incorrect count", 0, count);
       
-      count = fDao.count(appId, "", null, tomorrow.getTime());
+      count = fDao.count(appId, "", "", null, tomorrow.getTime());
       Assert.assertEquals("Incorrect count", batchSize, count);
       
       
@@ -401,14 +408,15 @@ public class LogEventFinderPagingDAOTest {
       requests.add(event);
       
       iDao.ingestEntitiesAsync(requests);
+      Thread.sleep(1000);
       
-      long count = fDao.count(appId, "", yesterday.getTime(), tomorrow.getTime());
+      long count = fDao.count(appId, "", "INFO", yesterday.getTime(), tomorrow.getTime());
       Assert.assertEquals("Incorrect count for between: ", batchSize+2, count);
       
-      count = fDao.count(appId, "", yesterday.getTime(), null);
+      count = fDao.count(appId, "", "INFO", yesterday.getTime(), null);
       Assert.assertEquals("Incorrect count for after: ", batchSize+1, count);
       
-      count = fDao.count(appId, "", null, tomorrow.getTime());
+      count = fDao.count(appId, "", "", null, tomorrow.getTime());
       Assert.assertEquals("Incorrect count for before: ", batchSize+1, count);
       
     } catch (Exception e) {
@@ -461,12 +469,12 @@ public class LogEventFinderPagingDAOTest {
       Assert.assertNotNull("Found null", page1);
       Assert.assertTrue("Incorrect resultset size for no match, ", page1.isEmpty());
       
-      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "lorem", null, yesterday.getTime(), new Date(), 3, false);
+      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "lorem", "INFO", null, yesterday.getTime(), new Date(), 3, false);
       Assert.assertNotNull("Found null", page1);
       Assert.assertEquals("Incorrect resultset size between, ", 3, page1.size());
       
       last = page1.get(page1.size()-1);
-      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "lorem", last, yesterday.getTime(), new Date(), 3, false);
+      page1 = fDao.findByAppIdBetweenDatesContains(appId1, "lorem", "", last, yesterday.getTime(), new Date(), 3, false);
       Assert.assertNotNull("Found null", page1);
       Assert.assertEquals("Incorrect resultset size between, ", 2, page1.size());
      

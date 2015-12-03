@@ -132,7 +132,7 @@ public class LoggingService implements ILoggingService {
             request.getSearchTerm(), fetchMark, request.getFromDate(),
             request.getFetchSize(), request.isFetchPrev());
         
-        count = finder.count(request.getAppId(), request.getSearchTerm(), request.getFromDate(), null);
+        count = finder.count(request.getAppId(), request.getSearchTerm(), null, request.getFromDate(), null);
       } 
       else 
       {
@@ -140,7 +140,7 @@ public class LoggingService implements ILoggingService {
             request.getFromDate(), request.getFetchSize(),
             request.isFetchPrev());
         
-        count = finder.count(request.getAppId(), null, request.getFromDate(), null);
+        count = finder.count(request.getAppId(), null, null, request.getFromDate(), null);
       }
     } 
     catch (org.springframework.dao.DataAccessException e) {
@@ -197,7 +197,7 @@ public class LoggingService implements ILoggingService {
             request.getSearchTerm(), fetchMark, request.getTillDate(),
             request.getFetchSize(), request.isFetchPrev());
         
-        count = finder.count(request.getAppId(), request.getSearchTerm(), null, request.getTillDate());
+        count = finder.count(request.getAppId(), "", request.getSearchTerm(), null, request.getTillDate());
       }
       else
       {
@@ -205,7 +205,7 @@ public class LoggingService implements ILoggingService {
             fetchMark, request.getTillDate(),
             request.getFetchSize(), request.isFetchPrev());
         
-        count = finder.count(request.getAppId(), null, null, request.getTillDate());
+        count = finder.count(request.getAppId(), "", null, null, request.getTillDate());
       }
     } catch (org.springframework.dao.DataAccessException e) {
       log.error("While querying data ", e);
@@ -260,19 +260,20 @@ public class LoggingService implements ILoggingService {
       if(!StringUtils.isEmpty(request.getSearchTerm()))
       {
         data = finder.findByAppIdBetweenDatesContains(request.getAppId(),
-            request.getSearchTerm(), fetchMark, request.getFromDate(), request.getTillDate(),
+            request.getSearchTerm(), request.getLevel(), fetchMark, request.getFromDate(), request.getTillDate(),
             request.getFetchSize(), request.isFetchPrev());
         
-        count = finder.count(request.getAppId(), request.getSearchTerm(), request.getFromDate(), request.getTillDate());
+        
       }
       else
       {
-        data = finder.findByAppIdBetweenDates(request.getAppId(),
+        data = finder.findByAppIdBetweenDates(request.getAppId(), request.getLevel(),
             fetchMark, request.getFromDate(), request.getTillDate(),
             request.getFetchSize(), request.isFetchPrev());
         
-        count = finder.count(request.getAppId(), null, request.getFromDate(), request.getTillDate());
       }
+      count = finder.count(request.getAppId(), request.getSearchTerm(), request.getLevel(), request.getFromDate(), request.getTillDate());
+      
     } catch (org.springframework.dao.DataAccessException e) {
       log.error("While querying data ", e);
       throw new ServiceException(e);

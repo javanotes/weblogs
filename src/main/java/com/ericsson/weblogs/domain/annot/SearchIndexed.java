@@ -1,6 +1,6 @@
 /* ============================================================================
 *
-* FILE: QueryRequest.java
+* FILE: SearchIndexed.java
 *
 * MODULE DESCRIPTION:
 * See class description
@@ -17,27 +17,16 @@
 *
 * ============================================================================
 */
-package com.ericsson.weblogs.dto;
+package com.ericsson.weblogs.domain.annot;
 
-import java.util.Date;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import lombok.Data;
+@Retention(value = RetentionPolicy.RUNTIME)
+@Target(value = { ElementType.FIELD})
+public @interface SearchIndexed {
 
-@Data
-public class QueryRequest {
-  /**
-   * Page size
-   */
-  private int fetchSize;
-  /**
-   * Set true if fetching prev page
-   */
-  private boolean isFetchPrev;
-  /**
-   * Current page reference timeuuid. Last row for 'next', first row for 'prev'
-   */
-  private String fetchMarkUUID;
-  private String appId,searchTerm;
-  private Date fromDate, tillDate;
-  private String level;
+  int ordinal();
 }

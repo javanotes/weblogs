@@ -19,10 +19,12 @@
 */
 package com.ericsson.weblogs;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -39,6 +41,8 @@ import com.ericsson.weblogs.dto.LogRequest;
 import com.ericsson.weblogs.dto.QueryRequest;
 import com.ericsson.weblogs.dto.QueryResponse;
 import com.ericsson.weblogs.service.ILoggingService;
+import com.ericsson.weblogs.service.ServiceException;
+import com.ericsson.weblogs.utils.CommonHelper;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = Application.class)
@@ -198,7 +202,85 @@ public class LogEventServiceTest {
     }
     
   }
-  
+  @Test
+  public void testCountLogLevels()
+  {
+    testInsertLogEvents();
+    //insert with different terms
+    List<LogRequest> requests = new ArrayList<>(batchSize);
+    LogRequest l;
+    for(int i=0; i<batchSize; i++)
+    {
+      
+      l = new LogRequest();
+      l.setLogText("This is some bla blaah bla logging at info level: "+(i % 2 == 0 ? "Lorem" : "Ipsum"));
+      l.setApplicationId(appId);
+      
+      requests.add(l);
+    }
+    try {
+      logService.ingestLoggingRequests(requests);
+      Thread.sleep(1000);//for index update
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+    QueryRequest req = new QueryRequest();
+    req.setAppId(appId);
+    req.setFetchSize(batchSize/2);
+    req.setLevel("INFO");
+    
+    Calendar yesterday = GregorianCalendar.getInstance();
+    yesterday.set(Calendar.DATE, yesterday.get(Calendar.DATE)-1);
+    req.setFromDate(yesterday.getTime());
+    
+    Calendar today = GregorianCalendar.getInstance();
+    req.setTillDate(today.getTime());
+    SimpleDateFormat format = new SimpleDateFormat();
+    try 
+    {
+      Map<String, Long> counts = logService.countDailyLogsByLevel(req);
+      Assert.assertNotNull(counts);
+      Assert.assertFalse(counts.isEmpty());
+      Assert.assertEquals(1, counts.keySet().size());
+      format.applyPattern(CommonHelper.LOG_TREND_DAILY_FORMAT);
+      Assert.assertTrue(counts.containsKey(format.format(today.getTime())));
+      long count = counts.get(format.format(today.getTime()));
+      Assert.assertEquals((batchSize*2), count);
+      
+      counts = logService.countHourlyLogsByLevel(req);
+      Assert.assertNotNull(counts);
+      Assert.assertFalse(counts.isEmpty());
+      Assert.assertEquals(1, counts.keySet().size());
+      format.applyPattern(CommonHelper.LOG_TREND_HOURLY_FORMAT);
+      Assert.assertTrue(counts.containsKey(format.format(today.getTime())));
+      count = counts.get(format.format(today.getTime()));
+      Assert.assertEquals((batchSize*2), count);
+      
+      req.setSearchTerm("lOREm");
+      
+      counts = logService.countDailyLogsByLevel(req);
+      Assert.assertNotNull(counts);
+      Assert.assertFalse(counts.isEmpty());
+      Assert.assertEquals(1, counts.keySet().size());
+      format.applyPattern(CommonHelper.LOG_TREND_DAILY_FORMAT);
+      Assert.assertTrue(counts.containsKey(format.format(today.getTime())));
+      count = counts.get(format.format(today.getTime()));
+      Assert.assertEquals((batchSize/2), count);
+      
+      counts = logService.countHourlyLogsByLevel(req);
+      Assert.assertNotNull(counts);
+      Assert.assertFalse(counts.isEmpty());
+      Assert.assertEquals(1, counts.keySet().size());
+      format.applyPattern(CommonHelper.LOG_TREND_HOURLY_FORMAT);
+      Assert.assertTrue(counts.containsKey(format.format(today.getTime())));
+      count = counts.get(format.format(today.getTime()));
+      Assert.assertEquals((batchSize/2), count);
+      
+    } catch (ServiceException e) {
+      Assert.fail(e.getMessage());
+    }
+  }
   @Test
   public void testFindLogEventsBetweenDatesWithTerm()
   {

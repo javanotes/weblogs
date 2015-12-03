@@ -21,6 +21,9 @@ package com.ericsson.weblogs.controllers;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 
@@ -35,9 +38,12 @@ import org.springframework.web.util.HtmlUtils;
 import com.ericsson.weblogs.dto.LogEventDTO;
 import com.ericsson.weblogs.dto.QueryRequest;
 import com.ericsson.weblogs.dto.QueryResponse;
+import com.ericsson.weblogs.dto.TrendChartResponse;
 import com.ericsson.weblogs.service.ILoggingService;
 import com.ericsson.weblogs.service.ServiceException;
 import com.ericsson.weblogs.utils.CommonHelper;
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,8 +53,7 @@ public class DashboardController {
 
   @Autowired
   private ILoggingService logService;
-  static final String DATE_PICKER_FORMAT = "MM/dd/yyyy";
-
+  
   @RequestMapping(value = "/logsearch")
   public @ResponseBody QueryResponse fetchLogs(@RequestParam int start,//from datatables
       @RequestParam int length,//from datatables
@@ -75,7 +80,7 @@ public class DashboardController {
     req.setLevel(level);
     
     // 11/19/2015 - 11/19/2015
-    SimpleDateFormat sdf = new SimpleDateFormat(DATE_PICKER_FORMAT);
+    SimpleDateFormat sdf = new SimpleDateFormat(CommonHelper.DATE_PICKER_FORMAT);
     StringTokenizer st = new StringTokenizer(dateRange);
     try 
     {
@@ -114,5 +119,70 @@ public class DashboardController {
     log.debug("qr.getFirstRowUUID(): "+qr.getFirstRowUUID());
     log.debug("qr.getLastRowUUID(): "+qr.getLastRowUUID());
     return qr;
+  }
+  
+  @RequestMapping(value = "/logtrend")
+  public @ResponseBody TrendChartResponse fetchLogTrends(
+      @RequestParam(value = "p_appid") String appId,
+      @RequestParam(value = "p_level", required = false) String level,
+      @RequestParam(value = "p_dtrange") String dateRange,
+      @RequestParam(value = "p_term", required = false) String searchTerm,
+      @RequestParam(value = "p_freq", defaultValue = CommonHelper.LOG_TREND_HOURLY) String freq,
+      Model model) {
+
+   
+    Map<String, Long> qr;
+    TrendChartResponse resp = new TrendChartResponse();
+    QueryRequest req = new QueryRequest();
+    req.setAppId(appId);
+    req.setSearchTerm(searchTerm);
+    req.setFetchSize(500);
+    req.setLevel(level);
+    
+    // 11/19/2015 - 11/19/2015
+    SimpleDateFormat sdf = new SimpleDateFormat(CommonHelper.DATE_PICKER_FORMAT);
+    StringTokenizer st = new StringTokenizer(dateRange);
+    try 
+    {
+      if(st.hasMoreTokens())
+        req.setFromDate(sdf.parse(st.nextToken()));
+      if(st.hasMoreTokens())
+        st.nextToken();
+      if(st.hasMoreTokens())
+        req.setTillDate(sdf.parse(st.nextToken()));
+      
+    } catch (ParseException e) {
+      log.error("Date parsing error ", e);
+      resp.setError("Internal server error!");
+    }
+    log.debug("Got request: " + req);
+
+    try 
+    {
+      if(CommonHelper.LOG_TREND_DAILY.equals(freq))
+        qr = logService.countDailyLogsByLevel(req);
+      else if(CommonHelper.LOG_TREND_HOURLY.equals(freq))
+        qr = logService.countHourlyLogsByLevel(req);
+      else
+        throw new ServiceException("Invalid frequency specified- "+freq);
+      
+      resp.getLabels().addAll(qr.keySet());
+            
+      Collection<String> values = Collections2.transform(qr.values(), new Function<Long, String>() {
+
+        @Override
+        public String apply(Long input) {
+          return String.valueOf(input);
+        }
+      });
+      
+      resp.getDatasets().add(new ArrayList<String>(values));
+      
+    } catch (ServiceException e) {
+      log.error("", e);
+      resp.setError(e.getMessage());
+    }
+
+    return resp;
   }
 }

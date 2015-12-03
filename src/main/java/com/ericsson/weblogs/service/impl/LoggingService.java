@@ -19,8 +19,14 @@
 */
 package com.ericsson.weblogs.service.impl;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +43,7 @@ import com.ericsson.weblogs.dto.QueryRequest;
 import com.ericsson.weblogs.dto.QueryResponse;
 import com.ericsson.weblogs.service.ILoggingService;
 import com.ericsson.weblogs.service.ServiceException;
+import com.ericsson.weblogs.utils.CommonHelper;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 
@@ -57,15 +64,7 @@ public class LoggingService implements ILoggingService {
       
       LogEvent l;
       l = new LogEvent(req);
-      
-      /*t = ftsEngine.tokenizeText(req.getLogText(), req.getSearchTerms(), false);
-      
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "Got tokens: " + t + " for log text => " + req.getLogText());
-      }
-      l.getTokens().addAll(t);*/
-      
+                 
       ingestor.insert(l);
     } 
     catch (DataAccessException e) {
@@ -87,14 +86,7 @@ public class LoggingService implements ILoggingService {
       for (LogRequest req : requests) 
       {
         l = new LogEvent(req);
-        
-        /*t = ftsEngine.tokenizeText(req.getLogText(), req.getSearchTerms(), false);
-        if (log.isDebugEnabled()) {
-          log.debug(
-              "Got tokens: " + t + " for log text => " + req.getLogText());
-        }
-        l.getTokens().addAll(t);*/
-        
+              
         events.add(l);
       }
 
@@ -233,6 +225,108 @@ public class LoggingService implements ILoggingService {
             
     }
     return resp;
+  }
+  public Map<String, Long> countHourlyLogsByLevel(QueryRequest request) throws ServiceException
+  {
+    Map<Date, Long> counts = countLogsByLevel(request);
+    final Map<String, Long> grouped = new LinkedHashMap<>();
+    SimpleDateFormat format = new SimpleDateFormat(CommonHelper.LOG_TREND_HOURLY_FORMAT);
+    String date;
+    for(Entry<Date, Long> e : counts.entrySet())
+    {
+      date = format.format(e.getKey());
+      if(!grouped.containsKey(date))
+      {
+        grouped.put(date, e.getValue());
+      }
+      else
+      {
+        grouped.put(date, grouped.get(date)+e.getValue());
+      }
+    }
+    return grouped;
+    
+  }
+  public Map<String, Long> countDailyLogsByLevel(QueryRequest request) throws ServiceException
+  {
+    Map<Date, Long> counts = countLogsByLevel(request);
+    final Map<String, Long> grouped = new LinkedHashMap<>();
+    SimpleDateFormat format = new SimpleDateFormat(CommonHelper.LOG_TREND_DAILY_FORMAT);
+    String date;
+    for(Entry<Date, Long> e : counts.entrySet())
+    {
+      date = format.format(e.getKey());
+      if(!grouped.containsKey(date))
+      {
+        grouped.put(date, e.getValue());
+      }
+      else
+      {
+        grouped.put(date, grouped.get(date)+e.getValue());
+      }
+    }
+    return grouped;
+    
+  }
+  public Map<Date, Long> countLogsByLevel(QueryRequest request) throws ServiceException
+  {
+    if(StringUtils.isEmpty(request.getAppId()))
+      throw new ServiceException("[appId] missing");
+    if(StringUtils.isEmpty(request.getLevel()))
+      throw new ServiceException("[level] missing");
+    if(request.getTillDate() == null)
+      throw new ServiceException("end date missing");
+    if(request.getFromDate() == null)
+      throw new ServiceException("start date missing");
+    
+    if(StringUtils.hasText(request.getSearchTerm()))
+    {
+      request.setSearchTerm(request.getSearchTerm().toLowerCase());
+    }
+    
+    LogEvent fetchMark = null;
+    List<LogEvent> data = null;
+    final Map<Date, Long> count = new TreeMap<>();
+    do 
+    {
+      if(data != null && !data.isEmpty()){
+        fetchMark = data.get(data.size() -1);
+        aggregateCount(count, data);
+      }
+      
+      if(!StringUtils.isEmpty(request.getSearchTerm()))
+      {
+        data = finder.findByAppIdBetweenDatesContains(request.getAppId(),
+            request.getSearchTerm(), request.getLevel(), fetchMark, request.getFromDate(), request.getTillDate(),
+            request.getFetchSize(), request.isFetchPrev());
+                
+      }
+      else
+      {
+        data = finder.findByAppIdBetweenDates(request.getAppId(), request.getLevel(),
+            fetchMark, request.getFromDate(), request.getTillDate(),
+            request.getFetchSize(), request.isFetchPrev());
+        
+      }
+      
+    } while (data != null && !data.isEmpty());
+    
+    return count;
+  }
+
+  private void aggregateCount(Map<Date, Long> count, List<LogEvent> data) {
+    for(LogEvent e : data)
+    {
+      if(!count.containsKey(e.getId().getTimestampAsDate()))
+      {
+        count.put(e.getId().getTimestampAsDate(), 1L);
+      }
+      else
+      {
+        count.put(e.getId().getTimestampAsDate(), count.get(e.getId().getTimestampAsDate())+1);
+      }
+    }
+    
   }
 
   @Override

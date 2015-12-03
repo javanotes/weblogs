@@ -453,6 +453,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
     }
     return events;
   }
+  
   /**
    * 
    * @param appId

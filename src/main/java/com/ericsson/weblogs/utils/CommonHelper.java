@@ -33,7 +33,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.TreeSet;
 
 import org.springframework.util.ClassUtils;
@@ -65,6 +64,11 @@ public class CommonHelper {
   public static final String ISO8601_TST_MILLIS_ZONE = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
   public static final String ISO8601_TST_MILLIS = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
   
+  public static final String DATE_PICKER_FORMAT = "MM/dd/yyyy";
+  public static final String LOG_TREND_HOURLY = "HOURLY";
+  public static final String LOG_TREND_HOURLY_FORMAT = "dd-MM-yyyy:HH";
+  public static final String LOG_TREND_DAILY = "DAILY";
+  public static final String LOG_TREND_DAILY_FORMAT = "dd-MM-yyyy";
   
   private static Date epochDate;
   

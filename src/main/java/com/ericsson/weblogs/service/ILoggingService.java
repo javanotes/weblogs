@@ -20,6 +20,7 @@
 package com.ericsson.weblogs.service;
 
 import java.util.List;
+import java.util.Map;
 
 import com.ericsson.weblogs.dto.LogRequest;
 import com.ericsson.weblogs.dto.QueryRequest;
@@ -63,5 +64,19 @@ public interface ILoggingService {
    * @throws ServiceException
    */
   QueryResponse fetchLogsBetweenDates(QueryRequest request) throws ServiceException;
+  /**
+   * 
+   * @param request
+   * @return
+   * @throws ServiceException
+   */
+  Map<String, Long> countHourlyLogsByLevel(QueryRequest request) throws ServiceException;
+  /**
+   * 
+   * @param request
+   * @return
+   * @throws ServiceException
+   */
+  Map<String, Long> countDailyLogsByLevel(QueryRequest request) throws ServiceException;
 
 }

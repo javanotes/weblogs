@@ -48,17 +48,10 @@ public class LogEventKey implements Serializable{
   
   @PrimaryKeyColumn(type = PrimaryKeyType.CLUSTERED, ordinal = 1, name = "event_ts", ordering = Ordering.DESCENDING)
   private UUID timestamp;
-  private Date timestampAsDate;
-  public void setTimestamp(UUID timestamp)
-  {
-    this.timestamp = timestamp;
-    timestampAsDate = new Date(UUIDs.unixTimestamp(this.timestamp));
-  }
+  
   public Date getTimestampAsDate()
   {
-    if(timestampAsDate == null)
-      timestampAsDate = new Date(UUIDs.unixTimestamp(this.timestamp));
-    return timestampAsDate;
+    return new Date(UUIDs.unixTimestamp(this.timestamp));
   }
   @Override
   public String toString() {

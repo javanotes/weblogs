@@ -22,6 +22,7 @@ package com.ericsson.weblogs;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import com.ericsson.weblogs.dao.LogEventRepository;
+import com.ericsson.weblogs.dto.LogEventDTO;
 import com.ericsson.weblogs.dto.LogRequest;
 import com.ericsson.weblogs.dto.QueryRequest;
 import com.ericsson.weblogs.dto.QueryResponse;
@@ -110,11 +112,330 @@ public class LogEventServiceTest {
       Assert.fail(e.getMessage());
     }
   }
+  final String LOG_PREFIX = "This is a log prefix with offset- ";
+  
+  @Test
+  public void testLogEventsPagination()
+  {
+    event = new LogRequest();
+    event.setApplicationId(appId);//for cleanup
+    LogRequest l;
+    List<LogRequest> requests = new ArrayList<>();
+    for(int i=0; i<batchSize*3; i++)
+    {
+      l = new LogRequest();
+      l.setLogText(LOG_PREFIX + i);
+      l.setApplicationId(appId);
+      
+      requests.add(l);
+    }
+    try {
+      logService.ingestLoggingRequests(requests);
+      Thread.sleep(1000);
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+    QueryRequest req = new QueryRequest();
+    req.setAppId(appId);
+    req.setFetchSize(batchSize);
+    req.setFromDate(new Date());
+    Calendar tomorrow = GregorianCalendar.getInstance();
+    tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)+1);
+    req.setTillDate(tomorrow.getTime());
+    
+    QueryResponse resp;
+    
+    try 
+    {
+      //page 1
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize, resp.getLogs().size());
+      Assert.assertEquals(batchSize*3, resp.getITotalRecords());
+      Assert.assertEquals(batchSize*3, resp.getITotalDisplayRecords());
+      
+      int offset = batchSize*3;
+      String text;
+      for(LogEventDTO log : resp.getLogs())
+      {
+        text = LOG_PREFIX+(--offset);
+        Assert.assertTrue("Log text did not expected", text.equals(log.getLogText()));
+      }
+      
+      //page 2
+      req.setFetchMarkUUID(resp.getLastRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize, resp.getLogs().size());
+      Assert.assertEquals(batchSize*3, resp.getITotalRecords());
+      Assert.assertEquals(batchSize*3, resp.getITotalDisplayRecords());
+      
+      for(LogEventDTO log : resp.getLogs())
+      {
+        text = LOG_PREFIX+(--offset);
+        Assert.assertTrue("Log text not expected", text.equals(log.getLogText()));
+      }
+      
+      //page 3
+      req.setFetchMarkUUID(resp.getLastRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize, resp.getLogs().size());
+      Assert.assertEquals(batchSize*3, resp.getITotalRecords());
+      Assert.assertEquals(batchSize*3, resp.getITotalDisplayRecords());
+      
+      for(LogEventDTO log : resp.getLogs())
+      {
+        text = LOG_PREFIX+(--offset);
+        Assert.assertTrue("Log text not expected", text.equals(log.getLogText()));
+      }
+      
+      String prevPageMark = resp.getFirstRowUUID();
+      
+      //not exists
+      req.setFetchMarkUUID(resp.getLastRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNull(resp.getFirstRowUUID());
+      Assert.assertNull(resp.getLastRowUUID());
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      Assert.assertEquals(0, resp.getLogs().size());
+      Assert.assertEquals(batchSize*3, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
+      
+      
+      req.setFetchPrev(true);
+      offset = batchSize*2;
+      
+      //page 2
+      req.setFetchMarkUUID(prevPageMark);
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize, resp.getLogs().size());
+      Assert.assertEquals(batchSize*3, resp.getITotalRecords());
+      Assert.assertEquals(batchSize*3, resp.getITotalDisplayRecords());
+      
+      for(LogEventDTO log : resp.getLogs())
+      {
+        text = LOG_PREFIX+(--offset);
+        Assert.assertTrue("Log text not expected", text.equals(log.getLogText()));
+      }
+      
+      offset = batchSize*3;
+      //page 1
+      req.setFetchMarkUUID(resp.getFirstRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize, resp.getLogs().size());
+      Assert.assertEquals(batchSize*3, resp.getITotalRecords());
+      Assert.assertEquals(batchSize*3, resp.getITotalDisplayRecords());
+      
+      for(LogEventDTO log : resp.getLogs())
+      {
+        text = LOG_PREFIX+(--offset);
+        Assert.assertTrue("Log text not expected", text.equals(log.getLogText()));
+      }
+      
+      //not exist
+      req.setFetchMarkUUID(resp.getFirstRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNull(resp.getFirstRowUUID());
+      Assert.assertNull(resp.getLastRowUUID());
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      Assert.assertEquals(0, resp.getLogs().size());
+      Assert.assertEquals(batchSize*3, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
+      
+    } catch (ServiceException e) {
+      Assert.fail(e.getMessage());
+    }
+  }
+  
+  @Test
+  public void testLogEventsPaginationWithTerm()
+  {
+    String term = "Lorem Ipsum dollar ";
+    event = new LogRequest();
+    event.setApplicationId(appId);//for cleanup
+    LogRequest l;
+    List<LogRequest> requests = new ArrayList<>();
+    for(int i=0; i<batchSize*3; i++)
+    {
+      l = new LogRequest();
+      l.setLogText(i % 2 == 0 ? (LOG_PREFIX + i) : (term + LOG_PREFIX + i));
+      l.setApplicationId(appId);
+      
+      requests.add(l);
+    }
+    try {
+      logService.ingestLoggingRequests(requests);
+      Thread.sleep(1000);
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+    QueryRequest req = new QueryRequest();
+    req.setAppId(appId);
+    req.setFetchSize(batchSize/2);
+    req.setFromDate(new Date());
+    req.setSearchTerm(term);
+    Calendar tomorrow = GregorianCalendar.getInstance();
+    tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)+1);
+    req.setTillDate(tomorrow.getTime());
+    
+    QueryResponse resp;
+    
+    try 
+    {
+      //page 1
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalRecords());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalDisplayRecords());
+      
+      int offset = batchSize*3;
+      String text;
+      for(LogEventDTO log : resp.getLogs())
+      {
+        text = term + LOG_PREFIX+(--offset);
+        --offset;
+        Assert.assertTrue("Log text did not expected", text.equals(log.getLogText()));
+      }
+      
+      //page 2
+      req.setFetchMarkUUID(resp.getLastRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalRecords());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalDisplayRecords());
+      
+      for(LogEventDTO log : resp.getLogs())
+      {
+        text = term + LOG_PREFIX+(--offset);
+        --offset;
+        Assert.assertTrue("Log text not expected", text.equals(log.getLogText()));
+      }
+      
+      //page 3
+      req.setFetchMarkUUID(resp.getLastRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalRecords());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalDisplayRecords());
+      
+      for(LogEventDTO log : resp.getLogs())
+      {
+        text = term + LOG_PREFIX+(--offset);
+        --offset;
+        Assert.assertTrue("Log text not expected", text.equals(log.getLogText()));
+      }
+      
+      String prevPageMark = resp.getFirstRowUUID();
+      
+      //not exists
+      req.setFetchMarkUUID(resp.getLastRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNull(resp.getFirstRowUUID());
+      Assert.assertNull(resp.getLastRowUUID());
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      Assert.assertEquals(0, resp.getLogs().size());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
+      
+      
+      req.setFetchPrev(true);
+      offset = batchSize*2;
+      
+      //page 2
+      req.setFetchMarkUUID(prevPageMark);
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalRecords());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalDisplayRecords());
+      
+      for(LogEventDTO log : resp.getLogs())
+      {
+        text = term + LOG_PREFIX+(--offset);
+        --offset;
+        Assert.assertTrue("Log text not expected", text.equals(log.getLogText()));
+      }
+      
+      offset = batchSize*3;
+      //page 1
+      req.setFetchMarkUUID(resp.getFirstRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNotNull(resp);
+      Assert.assertNotNull(resp.getFirstRowUUID());
+      Assert.assertNotNull(resp.getLastRowUUID());
+      Assert.assertFalse(resp.getLogs().isEmpty());
+      Assert.assertEquals(batchSize/2, resp.getLogs().size());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalRecords());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalDisplayRecords());
+      
+      for(LogEventDTO log : resp.getLogs())
+      {
+        text = term + LOG_PREFIX+(--offset);
+        --offset;
+        Assert.assertTrue("Log text not expected", text.equals(log.getLogText()));
+      }
+      
+      //not exist
+      req.setFetchMarkUUID(resp.getFirstRowUUID());
+      resp = logService.fetchLogsBetweenDates(req);
+      Assert.assertNull(resp.getFirstRowUUID());
+      Assert.assertNull(resp.getLastRowUUID());
+      Assert.assertTrue(resp.getLogs().isEmpty());
+      Assert.assertEquals(0, resp.getLogs().size());
+      Assert.assertEquals((batchSize*3)/2, resp.getITotalRecords());
+      Assert.assertEquals(0, resp.getITotalDisplayRecords());
+      
+    } catch (ServiceException e) {
+      Assert.fail(e.getMessage());
+    }
+  }
+  
   @Test
   public void testFindLogEventsBetweenDates()
   {
     testInsertLogEvents();
-    
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException e1) {
+     
+    }
     QueryRequest req = new QueryRequest();
     req.setAppId(appId);
     req.setFetchSize(batchSize/2);

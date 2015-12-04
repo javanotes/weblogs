@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -79,18 +80,30 @@ public class LoggingService implements ILoggingService {
   {
     try 
     {
+      //We want to maintain the order of the log. However, not concerned on atomicity
+      //so sending an unlogged batch. However, batch inserts fail with too large batchsize.
+      //Async insert is not guaranteeing the order of inserts. So inserting synchronously.
+      //Anyway the network trip is same for asyn insert, multiple.
       
       LogEvent l;
       List<LogEvent> events = new ArrayList<>();
       
+      log.info(">>> ingestLoggingRequests:Starting ingestion batch <<<");
+      long start = System.currentTimeMillis();
       for (LogRequest req : requests) 
       {
         l = new LogEvent(req);
-              
+        //ingestor.insert(l);     
         events.add(l);
       }
-
+      
       ingestor.ingestAsync(events);
+      //ingestor.ingestBatch(events, false);
+      
+      long time = System.currentTimeMillis() - start;
+      log.info(">>> ingestLoggingRequests:End ingestion batch <<<");
+      long secs = TimeUnit.MILLISECONDS.toSeconds(time);
+      log.info("Time taken: "+secs+" secs "+(time - TimeUnit.SECONDS.toMillis(secs)) + " ms");
     } 
     catch (DataAccessException e) {
       log.error("Logging request ingestion failed", e);
@@ -315,15 +328,17 @@ public class LoggingService implements ILoggingService {
   }
 
   private void aggregateCount(Map<Date, Long> count, List<LogEvent> data) {
+    Date ts;
     for(LogEvent e : data)
     {
-      if(!count.containsKey(e.getId().getTimestampAsDate()))
+      ts = e.getId().getTimestampAsDate();
+      if(!count.containsKey(ts))
       {
-        count.put(e.getId().getTimestampAsDate(), 1L);
+        count.put(ts, 1L);
       }
       else
       {
-        count.put(e.getId().getTimestampAsDate(), count.get(e.getId().getTimestampAsDate())+1);
+        count.put(ts, count.get(ts)+1);
       }
     }
     

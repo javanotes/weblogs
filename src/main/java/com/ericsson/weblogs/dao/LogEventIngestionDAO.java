@@ -40,7 +40,9 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BatchStatement.Type;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.utils.UUIDs;
 import com.ericsson.weblogs.domain.LogEvent;
+import com.ericsson.weblogs.utils.CommonHelper;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,7 +55,7 @@ public class LogEventIngestionDAO extends LogEventDAO {
     String cqlIngest = prepareInsertQuery();
     cqlIngestStmt = session.prepare(cqlIngest);
     cqlIngestStmt.setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.ONE);
-    log.info(">>>>>>> Prepared ingestion query: "+cqlIngest);
+    log.debug(">>>>>>> Prepared ingestion query: "+cqlIngest);
   }
   private String prepareInsertQuery()
   {
@@ -115,7 +117,7 @@ public class LogEventIngestionDAO extends LogEventDAO {
   }
   /**
    * 
-   * This is an asynchronous operation for saving as entities. We do not explicitly create the CQL here. 
+   * This is an asynchronous operation for batch saving as entities. We do not explicitly create the CQL here. 
    * <b>Note:</b> this method will NOT use server generated timeuuid using now() function. Will be useful
    * for inserting dates manually from application.
    * @param entities
@@ -160,7 +162,6 @@ public class LogEventIngestionDAO extends LogEventDAO {
     if(dax.isHasInitCause())
       throw dax;
   }
-  
   /**
    * This is an insert operation designed for high performance writes. A CQL is used to create a PreparedStatement once, 
    * then all row values are bound to the single PreparedStatement and executed asynchronously each, against the Session. <p>
@@ -170,17 +171,37 @@ public class LogEventIngestionDAO extends LogEventDAO {
    */
   public void ingestAsync(List<LogEvent> entities) throws DataAccessException
   {
+    ingestAsync(entities, false);
+  }
+  /**
+   * This is an insert operation designed for high performance writes. A CQL is used to create a PreparedStatement once, 
+   * then all row values are bound to the single PreparedStatement and executed asynchronously each, against the Session. <p>
+   * This method will use server generated timeuuid using now() function if useGeneratedTS is false
+   * @param entities
+   * @param useGeneratedTS
+   * @throws DataAccessException
+   */
+  public void ingestAsync(List<LogEvent> entities, boolean useGeneratedTS) throws DataAccessException
+  {
       
     try 
     {
       Assert.notNull(entities);
       Object[] args;
       List<Object> param;
-      
+      if (useGeneratedTS) {
+        log.warn("-- Using driver generated TimeUUID instead of Cassandra now() --");
+        for (LogEvent log : entities) {
+          log.getId().setTimestamp(UUIDs.timeBased());
+        } 
+      }
       final List<ResultSetFuture> futures = new ArrayList<>();
       final BatchDataAccessException dax = new BatchDataAccessException("Ingest async had errors");
-      long start = System.currentTimeMillis();
-      log.info("=================== ingestAsync:Starting ingestion batch ===================");
+      long start = 0;
+      if (log.isDebugEnabled()) {
+        start = System.currentTimeMillis();
+        log.debug(">>> ingestAsync:Starting ingestion batch <<<");
+      }
       for(LogEvent event : entities)
       {
         param = bindParams(event);
@@ -201,10 +222,13 @@ public class LogEventIngestionDAO extends LogEventDAO {
           dax.getExceptions().add(new DataAccessException(e));
         }
       }
-      long time = System.currentTimeMillis() - start;
-      log.info("=================== ingestAsync:End ingestion batch ===================");
-      long secs = TimeUnit.MILLISECONDS.toSeconds(time);
-      log.info("Time taken: "+secs+" secs "+(time - TimeUnit.SECONDS.toMillis(secs)) + " ms");
+      if (log.isDebugEnabled()) {
+        long time = System.currentTimeMillis() - start;
+        log.debug(">>> ingestAsync:End ingestion batch <<<");
+        long secs = TimeUnit.MILLISECONDS.toSeconds(time);
+        log.debug("Time taken: " + secs + " secs "
+            + (time - TimeUnit.SECONDS.toMillis(secs)) + " ms");
+      }
       if(!dax.getExceptions().isEmpty())
         throw dax;
       
@@ -213,14 +237,16 @@ public class LogEventIngestionDAO extends LogEventDAO {
     }
   }
   /**
+   * 
    * This is an insert operation designed for high performance writes. A CQL is used to create a PreparedStatement once, 
    * then all row values are bound to the single PreparedStatement and executed asynchronously and <i>atomically</i> 
    * in BATCH, against the Session. <p>
    * This method will use server generated timeuuid using now() function.
    * @param entities
    * @throws DataAccessException
+   * @deprecated - Batch too large exception
    */
-  public void ingestAsyncBatch(List<LogEvent> entities) throws DataAccessException
+  public void ingestBatch(List<LogEvent> entities, boolean logged) throws DataAccessException
   {
       
     try 
@@ -229,25 +255,35 @@ public class LogEventIngestionDAO extends LogEventDAO {
       Object[] args;
       List<Object> param;
       
-      BatchStatement batch = new BatchStatement(Type.LOGGED);
+      BatchStatement batch = new BatchStatement(logged ? Type.LOGGED : Type.UNLOGGED);
       long start = System.currentTimeMillis();
-      log.info("=================== ingestAsyncBatch:Starting ingestion batch (logged) ===================");
+      log.info(">>> ingestAsyncBatch:Starting ingestion batch (logged) <<<");
+      int i = 1;
       for(LogEvent event : entities)
       {
+        
         param = bindParams(event);
         args = new Object[param.size()];
                 
         batch.add(cqlIngestStmt.bind(param.toArray(args)));
-        
         if (log.isDebugEnabled()) {
           log.debug(">>>>>>>>>> Sending ingestion params => " + param);
         }
+        if((i++) % CommonHelper.CASSANDRA_MAX_BATCH_ITEMS == 0)
+        {
+          session.execute(batch);
+          batch.clear();
+        }
+                
       }
       
-      session.executeAsync(batch).getUninterruptibly();
+      if(batch.size() > 0){
+        session.execute(batch);
+        batch.clear();
+      }
       
       long time = System.currentTimeMillis() - start;
-      log.info("=================== ingestAsyncBatch:End ingestion batch (logged) ===================");
+      log.info(">>> ingestAsyncBatch:End ingestion batch (logged) <<<");
       long secs = TimeUnit.MILLISECONDS.toSeconds(time);
       log.info("Time taken: "+secs+" secs "+(time - TimeUnit.SECONDS.toMillis(secs)) + " ms");
       

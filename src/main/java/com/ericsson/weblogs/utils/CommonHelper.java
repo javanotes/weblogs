@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
@@ -70,7 +72,24 @@ public class CommonHelper {
   public static final String LOG_TREND_DAILY = "DAILY";
   public static final String LOG_TREND_DAILY_FORMAT = "dd-MM-yyyy";
   
+  public static final int CASSANDRA_MAX_BATCH_ITEMS = 1024;
+  
   private static Date epochDate;
+  
+  public static String highlightMatchedTerm(String html, String searchTerm, boolean caseInsensitive)
+  {
+    StringBuilder hl = new StringBuilder(html);
+    Matcher m = Pattern.compile(caseInsensitive ? "(?i)"+searchTerm : searchTerm).matcher(html);
+    int i = 0;
+    while(m.find())
+    {
+      String origin = m.group();
+      i = hl.indexOf(origin, i);
+      hl.replace(i, i+origin.length(), "<mark>"+origin+"</mark>");
+      i += ("<mark>"+origin+"</mark>").length();
+    }
+    return hl.toString();
+  }
   
   public static Date javaEpochDate()
   {

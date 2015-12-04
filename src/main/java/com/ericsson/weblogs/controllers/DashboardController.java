@@ -30,6 +30,7 @@ import java.util.TimeZone;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -107,6 +108,10 @@ public class DashboardController {
         String html = HtmlUtils.htmlEscape(dto.getLogText());
         html = html.replaceAll("(\r\n|\n)", "<br />");
         html = html.replaceAll("(\t)", "&nbsp;&nbsp;&nbsp;&nbsp;");
+        if(StringUtils.hasText(searchTerm))
+        {
+          html = CommonHelper.highlightMatchedTerm(html, searchTerm, true);
+        }
         dto.setLogText(html);
         dto.setTimestampText(format.format(dto.getTimestamp()));
       }

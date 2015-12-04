@@ -114,7 +114,7 @@ public class LogEventIngestDAOTest {
       requests.add(event);
     }
     try {
-      iDao.ingestAsyncBatch(requests);
+      iDao.ingestBatch(requests, false);
       
     } catch (Exception e) {
       Assert.fail(e.getMessage());

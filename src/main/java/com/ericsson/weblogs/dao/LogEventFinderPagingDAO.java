@@ -45,6 +45,7 @@ import com.ericsson.weblogs.domain.annot.LuceneIndex;
 import com.ericsson.weblogs.domain.annot.SearchIndexed;
 import com.ericsson.weblogs.utils.CommonHelper;
 import com.stratio.cassandra.lucene.builder.Builder;
+import com.stratio.cassandra.lucene.builder.search.Search;
 import com.stratio.cassandra.lucene.builder.search.condition.BooleanCondition;
 import com.stratio.cassandra.lucene.builder.search.sort.SortField;
 
@@ -340,17 +341,19 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
   {
     Select sel = QueryBuilder.select().from(table).limit(limit);
     Where w = sel.where(QueryBuilder.eq(pkCols[0], appId));
+    
+    Search filter = Builder.search().sort(SortField.field(timeuuidCol).reverse(isPrevPaging));
     if (StringUtils.hasText(level)) {
       if(searchFields.containsKey(0)){
-        w.and(QueryBuilder.eq(luceneCol,
-            Builder.search().filter(Builder.match(searchFields.get(0), level))
-                .sort(SortField.field(timeuuidCol).reverse(isPrevPaging))
-                .build()));
+        filter.filter(Builder.match(searchFields.get(0), level));
+        
       }
       else
         log.warn("-- LOG LEVEL SEARCH WILL BE IGNORED, since the @SearchIndexed annotation was not configured!");
       
     }
+    w.and(QueryBuilder.eq(luceneCol, filter.build()));
+    
     if(lastRow != null)
     {
       if(isPrevPaging){

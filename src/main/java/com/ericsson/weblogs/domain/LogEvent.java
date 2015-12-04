@@ -41,7 +41,7 @@ import lombok.Setter;
 @Table(value = "data_points")
 @CustomIndexed(className = "com.stratio.cassandra.lucene.Index", option = @CustomIndexOption(schema = @CustomIndexSchema(fields = {
     @CustomIndexField(field = "log_text", type = "text"),
-    @CustomIndexField(field = "event_ts", type = "uuid", sorted = true),
+    @CustomIndexField(field = "event_ts", type = "uuid",  sorted = true),
     @CustomIndexField(field = "level", type = "string") }) ) )
 public class LogEvent implements Serializable{
 

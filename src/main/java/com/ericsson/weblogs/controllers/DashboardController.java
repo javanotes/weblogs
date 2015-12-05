@@ -21,7 +21,6 @@ package com.ericsson.weblogs.controllers;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -36,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.HtmlUtils;
 
+import com.ericsson.weblogs.dto.ChartDataset;
 import com.ericsson.weblogs.dto.LogEventDTO;
 import com.ericsson.weblogs.dto.QueryRequest;
 import com.ericsson.weblogs.dto.QueryResponse;
@@ -181,7 +181,7 @@ public class DashboardController {
         }
       });
       
-      resp.getDatasets().add(new ArrayList<String>(values));
+      resp.getDatasets().add(new ChartDataset(values));
       
     } catch (ServiceException e) {
       log.error("", e);

@@ -1,6 +1,6 @@
 /* ============================================================================
 *
-* FILE: TrendChartResponse.java
+* FILE: ChartDataset.java
 *
 * MODULE DESCRIPTION:
 * See class description
@@ -20,14 +20,22 @@
 package com.ericsson.weblogs.dto;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import lombok.Data;
 
 @Data
-public class TrendChartResponse {
+public class ChartDataset {
 
-  private List<String> labels = new ArrayList<>();
-  private List<ChartDataset> datasets = new ArrayList<>();
-  private String error;
+  List<String> data = new ArrayList<>();
+  public ChartDataset()
+  {
+    
+  }
+  public ChartDataset(Collection<String> data)
+  {
+    this.getData().addAll(data);
+  }
+  //add more if needed
 }

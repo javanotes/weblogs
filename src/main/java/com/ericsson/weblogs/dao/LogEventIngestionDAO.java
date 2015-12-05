@@ -21,17 +21,12 @@ package com.ericsson.weblogs.dao;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 
-import org.springframework.cassandra.core.ConsistencyLevel;
-import org.springframework.cassandra.core.RetryPolicy;
-import org.springframework.cassandra.core.WriteOptions;
-import org.springframework.data.cassandra.core.WriteListener;
 import org.springframework.security.util.FieldUtils;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.Assert;
@@ -52,12 +47,18 @@ public class LogEventIngestionDAO extends LogEventDAO {
   @PostConstruct
   private void init() {
    
-    String cqlIngest = prepareInsertQuery();
+    String cqlIngest = prepareInsertQuery(true);
     cqlIngestStmt = session.prepare(cqlIngest);
     cqlIngestStmt.setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.ONE);
     log.debug(">>>>>>> Prepared ingestion query: "+cqlIngest);
+    
+    cqlIngest = prepareInsertQuery(false);
+    cqlIngestEntityStmt = session.prepare(cqlIngest);
+    cqlIngestEntityStmt.setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.ONE);
+    log.debug(">>>>>>> Prepared entity ingestion query: "+cqlIngest);
+    
   }
-  private String prepareInsertQuery()
+  private String prepareInsertQuery(boolean useServerFunctions)
   {
     
     String qry = "insert into " + table + "( ";
@@ -68,8 +69,8 @@ public class LogEventIngestionDAO extends LogEventDAO {
       qry += getColumnForField(entry.getValue()) + ",";
       
       // for auto generated timestamp/timeuuid primary keys
-      args += isFieldTimestamp(entry.getValue()) ? "dateof(now()),"
-          : isFieldTimeuuid(entry.getValue()) ? "now()," : "?,";
+      args += useServerFunctions ? (isFieldTimestamp(entry.getValue()) ? "dateof(now()),"
+          : isFieldTimeuuid(entry.getValue()) ? "now()," : "?,") : "?,";
 
     }
     
@@ -89,9 +90,13 @@ public class LogEventIngestionDAO extends LogEventDAO {
     
   }
  
-  private PreparedStatement cqlIngestStmt;
+  private PreparedStatement cqlIngestStmt,cqlIngestEntityStmt;
   
   private List<Object> bindParams(LogEvent event)
+  {
+    return bindParams(event, true);
+  }
+  private List<Object> bindParams(LogEvent event, boolean useServerFunctions)
   {
     List<Object> param = new ArrayList<>();
     Object o;
@@ -99,9 +104,10 @@ public class LogEventIngestionDAO extends LogEventDAO {
     {
       Field f = entry.getValue();
       
-      if(isFieldTimestamp(f) || isFieldTimeuuid(f))//auto generated at server
-        continue;
-              
+      if (useServerFunctions) {
+        if (isFieldTimestamp(f) || isFieldTimeuuid(f)) //auto generated at server
+          continue;
+      }
       try 
       {
         o = getIfEmbedded(event, f);
@@ -117,7 +123,8 @@ public class LogEventIngestionDAO extends LogEventDAO {
   }
   /**
    * 
-   * This is an asynchronous operation for batch saving as entities. We do not explicitly create the CQL here. 
+   * This is an asynchronous operation for batch saving as entities. A CQL is used to create a PreparedStatement once, 
+   * then all row values are bound to the single PreparedStatement and executed asynchronously each, against the Session. 
    * <b>Note:</b> this method will NOT use server generated timeuuid using now() function. Will be useful
    * for inserting dates manually from application.
    * @param entities
@@ -126,41 +133,52 @@ public class LogEventIngestionDAO extends LogEventDAO {
    */
   public void ingestEntitiesAsync(List<LogEvent> entities) throws DataAccessException
   {
-    final DataAccessException dax = new DataAccessException("Async operation had errors");    
-    cassandraOperations.insertAsynchronously(entities, new WriteListener<LogEvent>() {
-
-      @Override
-      public void onWriteComplete(Collection<LogEvent> entities) {
-        synchronized (dax) {
-          dax.notify();
-          dax.setDidNotify(true);
-        }
+    try 
+    {
+      Assert.notNull(entities);
+      Object[] args;
+      List<Object> param;
+      
+      final List<ResultSetFuture> futures = new ArrayList<>();
+      final BatchDataAccessException dax = new BatchDataAccessException("Ingest async had errors");
+      long start = 0;
+      if (log.isDebugEnabled()) {
+        start = System.currentTimeMillis();
+        log.debug(">>> ingestEntitiesAsync: Starting ingestion batch <<<");
+      }
+      for(LogEvent event : entities)
+      {
+        param = bindParams(event, false);
+        args = new Object[param.size()];
         
-      }
-
-      @Override
-      public void onException(Exception x) {
-        dax.initCause(x);
-        synchronized (dax) {
-          dax.notify();
-          dax.setDidNotify(true);
+        futures.add(cassandraOperations.executeAsynchronously(cqlIngestEntityStmt.bind(param.toArray(args))));
+        
+        if (log.isDebugEnabled()) {
+          log.debug(">>>>>>>>>> Sending ingestion params => " + param);
         }
       }
-    }, new WriteOptions(ConsistencyLevel.ONE, RetryPolicy.DEFAULT));
-    
-    synchronized (dax) {
-      if(!dax.isDidNotify())
+      
+      for(ResultSetFuture f : futures)
       {
         try {
-          dax.wait();
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          log.warn("", e);
+          f.getUninterruptibly();
+        } catch (Exception e) {
+          dax.getExceptions().add(new DataAccessException(e));
         }
       }
+      if (log.isDebugEnabled()) {
+        long time = System.currentTimeMillis() - start;
+        log.debug(">>> ingestEntitiesAsync: End ingestion batch <<<");
+        long secs = TimeUnit.MILLISECONDS.toSeconds(time);
+        log.debug("Time taken: " + secs + " secs "
+            + (time - TimeUnit.SECONDS.toMillis(secs)) + " ms");
+      }
+      if(!dax.getExceptions().isEmpty())
+        throw dax;
+      
+    } catch (Exception e) {
+      throw new DataAccessException(e);
     }
-    if(dax.isHasInitCause())
-      throw dax;
   }
   /**
    * This is an insert operation designed for high performance writes. A CQL is used to create a PreparedStatement once, 

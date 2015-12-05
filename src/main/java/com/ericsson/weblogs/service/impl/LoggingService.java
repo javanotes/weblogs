@@ -34,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.ericsson.weblogs.dao.DataAccessException;
 import com.ericsson.weblogs.dao.LogEventFinderPagingDAO;
 import com.ericsson.weblogs.dao.LogEventIngestionDAO;
@@ -53,7 +54,7 @@ import lombok.extern.slf4j.Slf4j;
 public class LoggingService implements ILoggingService {
 
   @Autowired
-  private LogEventIngestionDAO ingestor;
+  private LogEventIngestionDAO ingestionDao;
   @Autowired
   private LogEventFinderPagingDAO finder;
   
@@ -66,7 +67,7 @@ public class LoggingService implements ILoggingService {
       LogEvent l;
       l = new LogEvent(req);
                  
-      ingestor.insert(l);
+      ingestionDao.insert(l);
     } 
     catch (DataAccessException e) {
       log.error("Logging request ingestion failed", e);
@@ -83,7 +84,6 @@ public class LoggingService implements ILoggingService {
       //We want to maintain the order of the log. However, not concerned on atomicity
       //so sending an unlogged batch. However, batch inserts fail with too large batchsize.
       //Async insert is not guaranteeing the order of inserts. So inserting synchronously.
-      //Anyway the network trip is same for asyn insert, multiple.
       
       LogEvent l;
       List<LogEvent> events = new ArrayList<>();
@@ -93,12 +93,15 @@ public class LoggingService implements ILoggingService {
       for (LogRequest req : requests) 
       {
         l = new LogEvent(req);
-        //ingestor.insert(l);     
+        //we are setting the uuid from a jvm process
+        //TODO: synchronize to be globally unique uuid?
+        l.getId().setTimestamp(UUIDs.timeBased());
         events.add(l);
       }
       
-      ingestor.ingestAsync(events);
-      //ingestor.ingestBatch(events, false);
+      ingestionDao.ingestEntitiesAsync(events);
+      //ingestionDao.ingestAsync(events);
+      //ingestionDao.ingestBatch(events, false);
       
       long time = System.currentTimeMillis() - start;
       log.info(">>> ingestLoggingRequests:End ingestion batch <<<");

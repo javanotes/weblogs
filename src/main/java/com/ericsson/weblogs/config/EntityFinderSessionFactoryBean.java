@@ -49,6 +49,7 @@ import com.ericsson.weblogs.domain.annot.CustomIndexField;
 import com.ericsson.weblogs.domain.annot.CustomIndexOption;
 import com.ericsson.weblogs.domain.annot.CustomIndexed;
 import com.ericsson.weblogs.domain.annot.LuceneIndex;
+import com.ericsson.weblogs.utils.CommonHelper;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.stratio.cassandra.lucene.builder.Builder;
@@ -154,7 +155,7 @@ class EntityFinderSessionFactoryBean extends CassandraSessionFactoryBean
         return aMeta.hasAnnotation(Table.class.getName());
       }
     });
-    Set<BeanDefinition> beans =  provider.findCandidateComponents("com/ericsson/weblogs/domain");
+    Set<BeanDefinition> beans =  provider.findCandidateComponents(CommonHelper.ENTITY_PACKAGE_DECL);
     
     return Collections2.transform(beans, new Function<BeanDefinition, Class<?>>() {
 
@@ -240,6 +241,7 @@ class EntityFinderSessionFactoryBean extends CassandraSessionFactoryBean
         }
       }
     }
+    //--------- end section from Spring ---------------
     
     //this section is overridden by finding entity classes from domain package
     autoUpdateDDL();

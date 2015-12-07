@@ -52,7 +52,7 @@ public class CassandraConfiguration {
     CassandraClusterFactoryBean cluster = new CassandraClusterFactoryBean();
     cluster.setContactPoints(nodes);
     cluster.setPort(port);
-    log.info(">>>>>>>>>> Connecting to Cassandra host: "+nodes+"\t on Port: "+port);
+    log.debug(">>>>>>>>>> Connecting to Cassandra host: "+nodes+"\t on Port: "+port);
     return cluster;
   }
 
@@ -76,7 +76,7 @@ public class CassandraConfiguration {
     session.setKeyspaceName(keyspace);
     session.setConverter(converter());
     session.setSchemaAction(SchemaAction.CREATE);
-    log.info(">>>>>>>>>>> Using keyspace: "+keyspace+" with SchemaAction "+session.getSchemaAction());
+    log.info("Using keyspace: "+keyspace+" with SchemaAction "+session.getSchemaAction());
     return session;
   }
 

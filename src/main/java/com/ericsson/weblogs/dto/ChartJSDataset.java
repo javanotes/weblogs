@@ -26,16 +26,23 @@ import java.util.List;
 import lombok.Data;
 
 @Data
-public class ChartDataset {
+public class ChartJSDataset {
 
   List<String> data = new ArrayList<>();
-  public ChartDataset()
+  public ChartJSDataset()
   {
     
   }
-  public ChartDataset(Collection<String> data)
+  public ChartJSDataset(Collection<String> data)
   {
     this.getData().addAll(data);
   }
+  private String fillColor = "rgba(220,220,220,0.2)";
+  private String strokeColor = "rgba(220,220,220,1)";
+  private String pointColor = "rgba(220,220,220,1)";
+  private String pointStrokeColor = "#fff";
+  private String pointHighlightFill = "#fff";
+  private String pointHighlightStroke = "rgba(220,220,220,1)";
   //add more if needed
+  
 }

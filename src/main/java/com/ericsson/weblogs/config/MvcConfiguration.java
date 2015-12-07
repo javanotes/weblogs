@@ -111,7 +111,6 @@ public class MvcConfiguration extends WebMvcConfigurerAdapter {
   @Bean
   public RestTemplate restSupport()
   {
-    //HttpHost host = new HttpHost("localhost", 8080, "http");
     return new RestTemplate();
   }
 

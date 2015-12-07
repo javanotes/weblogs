@@ -19,16 +19,18 @@
 */
 package com.ericsson.weblogs.service.impl;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -116,138 +118,27 @@ public class LoggingService implements ILoggingService {
   }
 
   @Override
-  public QueryResponse fetchLogsFromDate(QueryRequest request)
-      throws ServiceException {
-    if(StringUtils.isEmpty(request.getAppId()))
-      throw new ServiceException("[appId] missing");
-    if(request.getFromDate() == null)
-      throw new ServiceException("start date missing");
-    
-    
-    if(StringUtils.hasText(request.getSearchTerm()))
-    {
-      request.setSearchTerm(request.getSearchTerm().toLowerCase());
-    }
-    final List<LogEventDTO> events = new ArrayList<>();
-    List<LogEvent> data;long count;
-    LogEvent fetchMark = StringUtils.hasText(request.getFetchMarkUUID())
-        ? new LogEvent(UUID.fromString(request.getFetchMarkUUID())) : null;
-    try 
-    {
-      if (!StringUtils.isEmpty(request.getSearchTerm())) 
-      {
-        data = finder.findByAppIdAfterDateContains(request.getAppId(),
-            request.getSearchTerm(), fetchMark, request.getFromDate(),
-            request.getFetchSize(), request.isFetchPrev());
-        
-        count = finder.count(request.getAppId(), request.getSearchTerm(), null, request.getFromDate(), null);
-      } 
-      else 
-      {
-        data = finder.findByAppIdAfterDate(request.getAppId(), fetchMark,
-            request.getFromDate(), request.getFetchSize(),
-            request.isFetchPrev());
-        
-        count = finder.count(request.getAppId(), null, null, request.getFromDate(), null);
-      }
-    } 
-    catch (org.springframework.dao.DataAccessException e) {
-      log.error("While querying data ", e);
-      throw new ServiceException(e);
-    }
-    
-    final QueryResponse resp = new QueryResponse();
-    resp.setITotalRecords(count);
-    if(data != null && !data.isEmpty())
-    {
-      resp.setFirstRowUUID(data.get(0).getId().getTimestamp().toString());
-      resp.setLastRowUUID(data.get(data.size()-1).getId().getTimestamp().toString());
-      
-      events.addAll(
-      Collections2.transform(data, new Function<LogEvent, LogEventDTO>() {
-
-        @Override
-        public LogEventDTO apply(LogEvent input) {
-          return new LogEventDTO(input);
-        }
-      }));
-      
-      resp.getLogs().addAll(events);
-      resp.setITotalDisplayRecords(count);
-      
-      
-    }
-    return resp;
-  }
-
-  @Override
-  public QueryResponse fetchLogsTillDate(QueryRequest request)
-      throws ServiceException {
-    if(StringUtils.isEmpty(request.getAppId()))
-      throw new ServiceException("[appId] missing");
-    if(request.getTillDate() == null)
-      throw new ServiceException("end date missing");
-    
-    if(StringUtils.hasText(request.getSearchTerm()))
-    {
-      request.setSearchTerm(request.getSearchTerm().toLowerCase());
-    }
-    final List<LogEventDTO> events = new ArrayList<>();
-    List<LogEvent> data;long count;
-    LogEvent fetchMark = StringUtils.hasText(request.getFetchMarkUUID())
-        ? new LogEvent(UUID.fromString(request.getFetchMarkUUID())) : null;
-        
-    try 
-    {
-      if(!StringUtils.isEmpty(request.getSearchTerm()))
-      {
-        data = finder.findByAppIdBeforeDateContains(request.getAppId(),
-            request.getSearchTerm(), fetchMark, request.getTillDate(),
-            request.getFetchSize(), request.isFetchPrev());
-        
-        count = finder.count(request.getAppId(), "", request.getSearchTerm(), null, request.getTillDate());
-      }
-      else
-      {
-        data = finder.findByAppIdBeforeDate(request.getAppId(),
-            fetchMark, request.getTillDate(),
-            request.getFetchSize(), request.isFetchPrev());
-        
-        count = finder.count(request.getAppId(), "", null, null, request.getTillDate());
-      }
-    } catch (org.springframework.dao.DataAccessException e) {
-      log.error("While querying data ", e);
-      throw new ServiceException(e);
-    }
-    
-    final QueryResponse resp = new QueryResponse();
-    resp.setITotalRecords(count);
-    if(data != null && !data.isEmpty())
-    {
-      resp.setFirstRowUUID(data.get(0).getId().getTimestamp().toString());
-      resp.setLastRowUUID(data.get(data.size()-1).getId().getTimestamp().toString());
-      
-      events.addAll(
-      Collections2.transform(data, new Function<LogEvent, LogEventDTO>() {
-
-        @Override
-        public LogEventDTO apply(LogEvent input) {
-          return new LogEventDTO(input);
-        }
-      }));
-      
-      resp.getLogs().addAll(events);
-      resp.setITotalDisplayRecords(count);
-            
-    }
-    return resp;
-  }
   public Map<String, Long> countHourlyLogsByLevel(QueryRequest request) throws ServiceException
   {
     Map<Date, Long> counts = countLogsByLevel(request);
-    final Map<String, Long> grouped = new LinkedHashMap<>();
-    SimpleDateFormat format = new SimpleDateFormat(CommonHelper.LOG_TREND_HOURLY_FORMAT);
+    
+    final SimpleDateFormat format = new SimpleDateFormat(CommonHelper.LOG_TREND_HOURLY_FORMAT);
+    final Map<String, Long> grouped = new TreeMap<>(new Comparator<String>() {
+
+      @Override
+      public int compare(String o1, String o2) {
+        try {
+          return format.parse(o1).compareTo(format.parse(o2));
+        } catch (ParseException e) {
+          log.error("", e);
+          throw new RuntimeException(e);
+        }
+      }
+    });
     String date;
+    
+    Set<Date> fillHrs = CommonHelper.fillBetweenHours(request.getFromDate(), request.getTillDate());
+        
     for(Entry<Date, Long> e : counts.entrySet())
     {
       date = format.format(e.getKey());
@@ -260,15 +151,40 @@ public class LoggingService implements ILoggingService {
         grouped.put(date, grouped.get(date)+e.getValue());
       }
     }
+    for(Date fill : fillHrs)
+    {
+      date = format.format(fill);
+      if(!grouped.containsKey(date))
+      {
+        grouped.put(date, 0l);
+      }
+    }
     return grouped;
     
   }
+  
+  @Override
   public Map<String, Long> countDailyLogsByLevel(QueryRequest request) throws ServiceException
   {
     Map<Date, Long> counts = countLogsByLevel(request);
-    final Map<String, Long> grouped = new LinkedHashMap<>();
-    SimpleDateFormat format = new SimpleDateFormat(CommonHelper.LOG_TREND_DAILY_FORMAT);
+    final SimpleDateFormat format = new SimpleDateFormat(CommonHelper.LOG_TREND_DAILY_FORMAT);
+    final Map<String, Long> grouped = new TreeMap<>(new Comparator<String>() {
+
+      @Override
+      public int compare(String o1, String o2) {
+        try {
+          return format.parse(o1).compareTo(format.parse(o2));
+        } catch (ParseException e) {
+          log.error("", e);
+          throw new RuntimeException(e);
+        }
+      }
+    });
+    
     String date;
+    
+    Set<Date> fillDays = CommonHelper.fillBetweenDays(request.getFromDate(), request.getTillDate());
+    
     for(Entry<Date, Long> e : counts.entrySet())
     {
       date = format.format(e.getKey());
@@ -281,10 +197,18 @@ public class LoggingService implements ILoggingService {
         grouped.put(date, grouped.get(date)+e.getValue());
       }
     }
+    for(Date fill : fillDays)
+    {
+      date = format.format(fill);
+      if(!grouped.containsKey(date))
+      {
+        grouped.put(date, 0l);
+      }
+    }
     return grouped;
     
   }
-  public Map<Date, Long> countLogsByLevel(QueryRequest request) throws ServiceException
+  private Map<Date, Long> countLogsByLevel(QueryRequest request) throws ServiceException
   {
     if(StringUtils.isEmpty(request.getAppId()))
       throw new ServiceException("[appId] missing");
@@ -330,7 +254,7 @@ public class LoggingService implements ILoggingService {
     return count;
   }
 
-  private void aggregateCount(Map<Date, Long> count, List<LogEvent> data) {
+  private static void aggregateCount(Map<Date, Long> count, List<LogEvent> data) {
     Date ts;
     for(LogEvent e : data)
     {

@@ -26,8 +26,10 @@ import java.lang.reflect.ParameterizedType;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -68,11 +70,12 @@ public class CommonHelper {
   
   public static final String DATE_PICKER_FORMAT = "MM/dd/yyyy";
   public static final String LOG_TREND_HOURLY = "HOURLY";
-  public static final String LOG_TREND_HOURLY_FORMAT = "dd-MM-yyyy:HH";
+  public static final String LOG_TREND_HOURLY_FORMAT = "dd-MMM:HH";
   public static final String LOG_TREND_DAILY = "DAILY";
-  public static final String LOG_TREND_DAILY_FORMAT = "dd-MM-yyyy";
+  public static final String LOG_TREND_DAILY_FORMAT = "dd-MMM";
   
   public static final int CASSANDRA_MAX_BATCH_ITEMS = 1024;
+  public static final String ENTITY_PACKAGE_DECL = "com/ericsson/weblogs/domain";
   
   private static Date epochDate;
   
@@ -89,6 +92,87 @@ public class CommonHelper {
       i += ("<mark>"+origin+"</mark>").length();
     }
     return hl.toString();
+  }
+  public static Calendar dateToCalendar(Date d)
+  {
+    Calendar c1 = new GregorianCalendar();
+    c1.setTime(d);
+    return c1;
+  }
+  //Note: will find gap for a max duration of 2 years
+  static int gapInDays(Calendar a, Calendar b)
+  {
+    //same year
+    if (a.get(Calendar.YEAR) == b.get(Calendar.YEAR)) {
+      return b.get(Calendar.DAY_OF_YEAR) - a.get(Calendar.DAY_OF_YEAR);
+    } 
+    //consecutive year
+    else if (a.get(Calendar.YEAR) + 1 == b.get(Calendar.YEAR)) {
+      return a.getMaximum(Calendar.DAY_OF_YEAR) + b.get(Calendar.DAY_OF_YEAR) - a.get(Calendar.DAY_OF_YEAR);
+      
+    } else
+      return 0;
+  }
+  //Note: will find gap for a max duration of 2 years
+  public static int gapInHours(Calendar a, Calendar b)
+  {
+    int daysGap;
+    // same day
+    if (a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR)) {
+      return b.get(Calendar.HOUR_OF_DAY) - a.get(Calendar.HOUR_OF_DAY);
+    }
+    // consecutive days
+    else if ((daysGap = gapInDays(a, b)) > 0) {
+      int hours = a.getMaximum(Calendar.HOUR_OF_DAY) - a.get(Calendar.HOUR_OF_DAY);
+      for(int i=1; i<daysGap; i++)
+      {
+        hours += 24;
+      }
+      hours += b.get(Calendar.HOUR_OF_DAY);
+      return hours;
+      
+    } 
+    
+    else
+      return 0;
+  }
+  
+  public static Set<Date> fillBetweenDays(Date from, Date to)
+  {
+    Calendar c1 = dateToCalendar(from);
+    Calendar c2 = dateToCalendar(to);
+    
+    int days = gapInDays(c1, c2);
+    Set<Date> fill = new TreeSet<>();
+    if(days > 0)
+    {
+      for(int i=1; i<days; i++)
+      {
+        c1.add(Calendar.DAY_OF_MONTH, 1);
+        fill.add(c1.getTime());
+      }
+    }
+    return fill;
+    
+  }
+  
+  public static Set<Date> fillBetweenHours(Date from, Date to)
+  {
+    Calendar c1 = dateToCalendar(from);
+    Calendar c2 = dateToCalendar(to);
+    
+    Set<Date> fill = new TreeSet<>();
+    int hrs = gapInHours(c1, c2);
+    if(hrs > 1)
+    {
+      for(int i=0; i<hrs; i++)
+      {
+        c1.add(Calendar.HOUR_OF_DAY, 1);
+        fill.add(c1.getTime());
+      }
+    }
+    return fill;
+    
   }
   
   public static Date javaEpochDate()

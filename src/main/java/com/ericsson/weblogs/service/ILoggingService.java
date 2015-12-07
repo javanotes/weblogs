@@ -43,21 +43,6 @@ public interface ILoggingService {
    */
   void ingestLoggingRequests(List<LogRequest> requests) throws ServiceException;
 
- 
-  /**
-   * @deprecated - TBD. Not all functionality implemented
-   * @param request
-   * @return
-   * @throws ServiceException
-   */
-  QueryResponse fetchLogsFromDate(QueryRequest request) throws ServiceException;
-  /**
-   * @deprecated - TBD. Not all functionality implemented
-   * @param request
-   * @return
-   * @throws ServiceException
-   */
-  QueryResponse fetchLogsTillDate(QueryRequest request) throws ServiceException;
   /**
    * @param request
    * @return

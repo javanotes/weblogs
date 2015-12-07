@@ -1,11 +1,11 @@
-<div class="box box-solid box-primary" th:fragment="content"
+<div th:fragment="content"
 	xmlns:th="http://www.thymeleaf.org">
-
+	
 	<div class="row">
 		<div class="col-md-12">
-			<div class="box">
+			<div class="box box-solid box-primary">
 				<div class="box-header with-border ">
-					<h3 class="box-title">- Log Search View -</h3>
+					<h6 class="box-title">Log Search View</h6>
 
 					<div class="box-tools pull-right">
 						<button type="button" class="btn btn-box-tool"
@@ -49,11 +49,8 @@
 
 							<div id="mainForm" style="display: none;">
 
-								<div class="box box-solid box-primary">
-									<div class="box-header">
-										<h4 class="box-title">Log Trail</h4>
-
-									</div>
+								<div class="box ">
+									
 									<table id="batchExecPtDetailsTable"
 										class="table table-bordered table-striped table-hover table-condensed dt-responsive nowrap">
 										<thead>
@@ -78,52 +75,7 @@
 					</div>
 					<!-- /.row -->
 
-					<div class="row">
-						<div class="col-md-6">
-							<div class="box box-solid box-primary">
-								<div class="box-header">
-									<h4 class="box-title">Hourly Error Trend</h4>
-									<div class="box-tools pull-right">
-										<button id="btnTHourly" type="button" class="btn btn-box-tool">
-											<i class="fa fa-line-chart"></i>
-										</button>
-										
-									</div>
-								</div>
-								<div id="btnTHLoading" style="display: none;"
-									class="overlay">
-									<i class="fa fa-refresh fa-spin"></i>
-								</div>
-								<div id="divTH" class="box-body" align="center">
-									<canvas id="thChart" width="300" height="300"></canvas>
-								</div>
-							</div>
-						</div>
-						<!-- /.col -->
-						<div class="col-md-6">
-							<div class="box box-solid box-primary">
-								<div class="box-header">
-									<h4 class="box-title">Daily Error Trend</h4>
-									<div class="box-tools pull-right">
-										<button id="btnTDaily" type="button" class="btn btn-box-tool">
-											<i class="fa fa-line-chart"></i>
-										</button>
-										
-									</div>
-									
-								</div>
-								<div id="btnTDLoading" style="display: none;" class="overlay">
-									<i class="fa fa-refresh fa-spin"></i>
-								</div>
-								<div id="divTD" class="box-body" align="center">
-									<canvas id="tdChart" width="300" height="300"></canvas>
-								</div>
-							</div>
-						</div>
-						<!-- /.col -->
-
-					</div>
-					<!-- /.row -->
+					
 				</div>
 				<!-- ./box-body -->
             
@@ -133,8 +85,58 @@
 		<!-- /.col -->
 	</div>
 	<!-- /.row -->
-    
-    		
+	
+	<div class="row">
+		<div class="col-md-6">
+			<div class="box box-solid box-primary">
+				<div class="box-header">
+					<h6 class="box-title">Daily Error Trend</h6>
+					<div class="box-tools pull-right">
+						<button id="btnTDaily" type="button" class="btn btn-box-tool">
+							<i class="fa fa-line-chart"></i>
+						</button>
+						<!-- <button type="button" class="btn btn-box-tool"
+							data-widget="collapse">
+							<i class="fa fa-minus"></i>
+						</button> -->
+					</div>
+
+				</div>
+				<div id="btnTDLoading" style="display: none;" class="overlay">
+					<i class="fa fa-refresh fa-spin"></i>
+				</div>
+				<div id="divTD" class="chart" style="overflow: scroll;" align="center">
+					<canvas id="tdChart" width="800" height="150"></canvas>
+				</div>
+			</div>
+		</div>
+		<!-- /.col -->
+		<div class="col-md-6">
+			<div class="box box-solid box-primary">
+				<div class="box-header">
+					<h6 class="box-title">Hourly Error Trend</h6>
+					<div class="box-tools pull-right">
+						<button id="btnTHourly" type="button" class="btn btn-box-tool">
+							<i class="fa fa-line-chart"></i>
+						</button>
+						<!-- <button type="button" class="btn btn-box-tool"
+							data-widget="collapse">
+							<i class="fa fa-minus"></i>
+						</button> -->
+					</div>
+				</div>
+				<div id="btnTHLoading" style="display: none;" class="overlay">
+					<i class="fa fa-refresh fa-spin"></i>
+				</div>
+				<div id="divTH" class="chart" style="overflow: scroll;" align="center">
+					<canvas id="thChart" width="800" height="150"></canvas>
+				</div>
+			</div>
+		</div>
+		<!-- /.col -->
+	</div>
+	<!-- /.row -->
+
 	<!-- Wait Modal Start here-->
 	<div class="modal fade bs-example-modal-sm" id="myPleaseWait"
 		tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
@@ -165,9 +167,13 @@
 		var _urlChart = [[@{/logtrend}]];
 		var refresh;
 		var table;
+		var tdCanvas,thCanvas;
+		var tdCtx, thCtx;
 				
 		$(document).ready(function() {
 			refresh = $('#autoRefresh').is(':checked');
+			thCanvas = $('#thChart').get(0);
+			tdCanvas = $('#tdChart').get(0);
 			
 			$('#btnTHourly').click(function(){
 				var term, appId, dtRange;
@@ -184,7 +190,34 @@
 					return;
 				}
 				
-				$('#btnTHLoading').show();
+				$.ajax({
+					url : _urlChart,
+					method : 'GET',
+					data: {p_term: term, p_appid: appId, p_dtrange: dtRange, p_level: 'ERROR', p_freq: 'HOURLY'},
+					dataType: "json",
+					success : function(data){
+						$('#btnTHLoading').hide();
+						//console.log('RESPONSE: '+JSON.stringify(data));		
+						  if(thCtx){
+							  thCtx.clearRect(0, 0, thCanvas.width, thCanvas.height);
+						  }
+						  thCtx = thCanvas.getContext("2d");
+				          var myNewChart = new Chart(thCtx).Line(data, {
+				        	    bezierCurve: false,
+				        	    responsive: true,
+				        	    maintainAspectRatio: false
+				          });
+				          
+	          
+					},//end success
+					error : function(err){
+						$('#btnTHLoading').hide();
+						console.log('Error => '+err);
+					},
+					beforeSend : function(){
+						$('#btnTHLoading').show();
+					}
+				});
 			});
 			$('#btnTDaily').click(function(){
 				var term, appId, dtRange;
@@ -208,10 +241,15 @@
 					dataType: "json",
 					success : function(data){
 						$('#btnTDLoading').hide();
-						console.log('RESPONSE: '+JSON.stringify(data));					          
-				          var ctx = $('#tdChart').get(0).getContext("2d");
-				          var myNewChart = new Chart(ctx).Line(data, {
-				        	    bezierCurve: false
+						//console.log('RESPONSE: '+JSON.stringify(data));					          
+						if(tdCtx){
+							  tdCtx.clearRect(0, 0, tdCanvas.width, tdCanvas.height);
+						  }
+						  tdCtx = tdCanvas.getContext("2d");
+				          var myNewChart = new Chart(tdCtx).Line(data, {
+				        	    bezierCurve: false,
+				        	    responsive: true,
+				        	    maintainAspectRatio: false
 				          });
 				          
 	          

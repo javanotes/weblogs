@@ -19,32 +19,79 @@
 */
 package com.ericsson.weblogs;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.Set;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
 
-import com.ericsson.weblogs.lucene.FullTextSearch;
-import com.google.common.collect.Sets;
+import com.ericsson.weblogs.utils.CommonHelper;
 
 @RunWith(BlockJUnit4ClassRunner.class)
 public class StandaloneTestSuite {
 
   @Test
-  public void testLuceneFTS()
+  public void testHourFillings()
   {
+    Calendar c = new GregorianCalendar();
+    Date d1 = c.getTime();
+    c.add(Calendar.DAY_OF_MONTH, 1);
+    Date d2 = c.getTime();
+    System.out.println("StandaloneTestSuite.testHourFillings()");
+    System.out.println("From: "+d1+"\tTo: "+d2);
+    Set<Date> s = CommonHelper.fillBetweenHours(d1, d2);
+    System.out.println(s.size());
+    SimpleDateFormat sdf = new SimpleDateFormat(CommonHelper.LOG_TREND_HOURLY_FORMAT);
+    for(Date d : s)
+    {
+      System.out.println(sdf.format(d));
+    }
+    
+    c.add(Calendar.HOUR_OF_DAY, 1);
+    d1 = c.getTime();
+    System.out.println("From: "+d2+"\tTo: "+d1);
+    s = CommonHelper.fillBetweenHours(d2, d1);
+    System.out.println(s.size());
+    for(Date d : s)
+    {
+      System.out.println(sdf.format(d));
+    }
+  }
+  
+  @Test
+  public void testDayFillings()
+  {
+    Calendar c = new GregorianCalendar();
+    Date d1 = c.getTime();
+    c.add(Calendar.DAY_OF_MONTH, 1);
+    Date d2 = c.getTime();
+    System.out.println("StandaloneTestSuite.testDayFillings()");
+    System.out.println("From: "+d1+"\tTo: "+d2);
+    Set<Date> s = CommonHelper.fillBetweenDays(d1, d2);
+    System.out.println(s.size());
+    SimpleDateFormat sdf = new SimpleDateFormat(CommonHelper.LOG_TREND_DAILY_FORMAT);
+    for(Date d : s)
+    {
+      System.out.println(sdf.format(d));
+    }
+  }
+  @Test
+  public void testLuceneFTS()
+  {/*
     try {
       FullTextSearch fts = new FullTextSearch();
       Set<String> tokens = fts.tokenizeText("Rama is a good boy. perhaps he was down with fever. Nad also John was down with fever as well."
           + " Perhaps I am trying to make this as long as a logging requires so that the actual story doesnt get boring. "
           + " When he was doing Lorem Ipsum and the quick brown fox ran over the crazy dog. huhh!", Sets.newHashSet("down with fever"), false, false);
-      System.out.println(tokens);
+      //System.out.println(tokens);
     } catch (Exception e) {
       e.printStackTrace();
       Assert.fail(e.getMessage());
       
     }
-  }
+  */}
 }

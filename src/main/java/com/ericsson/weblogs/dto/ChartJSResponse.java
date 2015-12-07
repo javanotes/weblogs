@@ -25,9 +25,9 @@ import java.util.List;
 import lombok.Data;
 
 @Data
-public class TrendChartResponse {
+public class ChartJSResponse {
 
   private List<String> labels = new ArrayList<>();
-  private List<ChartDataset> datasets = new ArrayList<>();
+  private List<ChartJSDataset> datasets = new ArrayList<>();
   private String error;
 }

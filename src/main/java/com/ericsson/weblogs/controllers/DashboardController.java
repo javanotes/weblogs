@@ -35,11 +35,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.HtmlUtils;
 
-import com.ericsson.weblogs.dto.ChartDataset;
+import com.ericsson.weblogs.dto.ChartJSDataset;
 import com.ericsson.weblogs.dto.LogEventDTO;
 import com.ericsson.weblogs.dto.QueryRequest;
 import com.ericsson.weblogs.dto.QueryResponse;
-import com.ericsson.weblogs.dto.TrendChartResponse;
+import com.ericsson.weblogs.dto.ChartJSResponse;
 import com.ericsson.weblogs.service.ILoggingService;
 import com.ericsson.weblogs.service.ServiceException;
 import com.ericsson.weblogs.utils.CommonHelper;
@@ -127,7 +127,7 @@ public class DashboardController {
   }
   
   @RequestMapping(value = "/logtrend")
-  public @ResponseBody TrendChartResponse fetchLogTrends(
+  public @ResponseBody ChartJSResponse fetchLogTrends(
       @RequestParam(value = "p_appid") String appId,
       @RequestParam(value = "p_level", required = false) String level,
       @RequestParam(value = "p_dtrange") String dateRange,
@@ -137,7 +137,7 @@ public class DashboardController {
 
    
     Map<String, Long> qr;
-    TrendChartResponse resp = new TrendChartResponse();
+    ChartJSResponse resp = new ChartJSResponse();
     QueryRequest req = new QueryRequest();
     req.setAppId(appId);
     req.setSearchTerm(searchTerm);
@@ -181,7 +181,7 @@ public class DashboardController {
         }
       });
       
-      resp.getDatasets().add(new ChartDataset(values));
+      resp.getDatasets().add(new ChartJSDataset(values));
       
     } catch (ServiceException e) {
       log.error("", e);

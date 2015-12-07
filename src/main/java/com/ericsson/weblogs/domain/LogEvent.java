@@ -52,17 +52,16 @@ public class LogEvent implements Serializable{
   }
   public LogEvent()
   {
-    
+    setId(new LogEventKey());
   }
   public LogEvent(UUID timestamp)
   {
     this();
-    setId(new LogEventKey());
     getId().setTimestamp(timestamp);
   }
   public LogEvent(LogRequest req)
   {
-    setId(new LogEventKey());
+    this();
     getId().setAppId(req.getApplicationId());
     setLevel(req.getLevel());
     setLogText(req.getLogText());

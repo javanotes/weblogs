@@ -572,7 +572,7 @@ public class LogEventServiceTest {
       counts = logService.countHourlyLogsByLevel(req);
       Assert.assertNotNull(counts);
       Assert.assertFalse(counts.isEmpty());
-      Assert.assertEquals(1, counts.keySet().size());
+      Assert.assertEquals(24, counts.keySet().size());
       format.applyPattern(CommonHelper.LOG_TREND_HOURLY_FORMAT);
       Assert.assertTrue(counts.containsKey(format.format(today.getTime())));
       count = counts.get(format.format(today.getTime()));
@@ -592,7 +592,7 @@ public class LogEventServiceTest {
       counts = logService.countHourlyLogsByLevel(req);
       Assert.assertNotNull(counts);
       Assert.assertFalse(counts.isEmpty());
-      Assert.assertEquals(1, counts.keySet().size());
+      Assert.assertEquals(24, counts.keySet().size());
       format.applyPattern(CommonHelper.LOG_TREND_HOURLY_FORMAT);
       Assert.assertTrue(counts.containsKey(format.format(today.getTime())));
       count = counts.get(format.format(today.getTime()));

@@ -24,16 +24,32 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Set;
+import java.util.UUID;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.underthehood.weblogs.utils.CommonHelper;
 
 @RunWith(BlockJUnit4ClassRunner.class)
 public class StandaloneTestSuite {
 
+  @Test
+  public void testMakeTimeBasedUUID()
+  {
+    long time = System.currentTimeMillis();
+    try {
+      UUID u = CommonHelper.makeTimeBasedUUID(time);
+      Assert.assertNotNull(u);
+      Assert.assertEquals("Not correct type 1 uuid", time, UUIDs.unixTimestamp(u));
+    } catch (Exception e) {
+      e.printStackTrace();
+      Assert.fail(e.getMessage());
+    }
+  }
   @Test
   public void testHourFillings()
   {

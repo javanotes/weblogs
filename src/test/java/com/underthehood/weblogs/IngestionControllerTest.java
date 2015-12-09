@@ -89,7 +89,7 @@ public class IngestionControllerTest {
     event = new LogRequest();
     event.setLogText("This is some bla blaah bla logging at info level");
     event.setApplicationId(appId);
-    
+    event.setTimestamp(System.currentTimeMillis());
     
     try 
     {
@@ -114,7 +114,7 @@ public class IngestionControllerTest {
     event = new LogRequest();
     event.setLogText("This is some bla blaah bla logging at info level");
     event.setApplicationId(appId);
-    
+    event.setTimestamp(System.currentTimeMillis());
     List<LogRequest> requests = new ArrayList<>(batchSize);
     LogRequest l;
     for(int i=0; i<batchSize; i++)
@@ -122,7 +122,7 @@ public class IngestionControllerTest {
       l = new LogRequest();
       l.setLogText("This is some bla blaah bla logging at info level");
       l.setApplicationId(appId);
-      
+      l.setTimestamp(System.currentTimeMillis());
       requests.add(l);
     }
         

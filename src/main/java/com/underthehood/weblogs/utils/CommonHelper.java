@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -75,10 +76,19 @@ public class CommonHelper {
   public static final String LOG_TREND_DAILY_FORMAT = "dd-MMM";
   
   public static final int CASSANDRA_MAX_BATCH_ITEMS = 1024;
-  public static final String ENTITY_PACKAGE_DECL = "com/ericsson/weblogs/domain";
+  public static final String ENTITY_PACKAGE_DECL = "com/underthehood/weblogs/domain";
   
   private static Date epochDate;
-  
+  /**
+   * Create a type-1 UUID based on the given timestamp
+   * @param timestamp
+   * @return
+   */
+  public static UUID makeTimeBasedUUID(long timestamp)
+  {
+    return UUID1Generator.instance().generate(timestamp);
+    
+  }
   public static String highlightMatchedTerm(String html, String searchTerm, boolean caseInsensitive)
   {
     StringBuilder hl = new StringBuilder(html);

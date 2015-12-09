@@ -25,6 +25,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Random;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,11 +34,11 @@ import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import com.datastax.driver.core.utils.UUIDs;
 import com.underthehood.weblogs.Application;
 import com.underthehood.weblogs.dao.LogEventIngestionDAO;
 import com.underthehood.weblogs.dao.LogEventRepository;
 import com.underthehood.weblogs.domain.LogEvent;
+import com.underthehood.weblogs.utils.CommonHelper;
 
 import ch.qos.logback.core.helpers.ThrowableToStringArray;
 
@@ -56,10 +57,17 @@ public class DataGenerator {
   private int logsPerPeriod = 10;
   private int logPeriod = 10;
   private String appId = "7DAYSAPP";
+  @Test
+  public void dummy()
+  {
+    
+  }
   
-  //@After
+  @After
   public void delete()
   {
+    event = new LogEvent();
+    event.getId().setAppId(appId);
     if(event != null)
     {
       try {
@@ -98,7 +106,7 @@ public class DataGenerator {
           event.setLogText(LOG_PREFIX + " Day: " + date.get(Calendar.DATE)
               + " Hour: " + date.get(Calendar.HOUR_OF_DAY));
           event.getId().setAppId(appId);
-          event.getId().setTimestamp(UUIDs.startOf(date.getTimeInMillis()));
+          event.getId().setTimestamp(CommonHelper.makeTimeBasedUUID(date.getTimeInMillis()));
           if (j < ec) 
           {
             event.setLevel("ERROR");

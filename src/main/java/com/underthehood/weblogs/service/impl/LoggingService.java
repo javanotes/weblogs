@@ -36,7 +36,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.underthehood.weblogs.dao.DataAccessException;
@@ -65,10 +64,11 @@ public class LoggingService implements ILoggingService {
   {
     try 
     {
-      
+      if(req.getTimestamp() <= 0)
+        throw new ServiceException("Timestamp not provided");
       LogEvent l;
       l = new LogEvent(req);
-                 
+      l.getId().setTimestamp(CommonHelper.makeTimeBasedUUID(req.getTimestamp()));           
       ingestionDao.insert(l);
     } 
     catch (DataAccessException e) {
@@ -90,23 +90,23 @@ public class LoggingService implements ILoggingService {
       LogEvent l;
       List<LogEvent> events = new ArrayList<>();
       
-      log.info(">>> ingestLoggingRequests:Starting ingestion batch <<<");
+      log.debug(">>> ingestLoggingRequests: Starting ingestion batch <<< ");
       long start = System.currentTimeMillis();
       for (LogRequest req : requests) 
       {
+        if(req.getTimestamp() <= 0)
+          throw new ServiceException("Timestamp not provided");
         l = new LogEvent(req);
         //we are setting the uuid from a jvm process
         //TODO: synchronize to be globally unique uuid?
-        l.getId().setTimestamp(UUIDs.timeBased());
+        l.getId().setTimestamp(CommonHelper.makeTimeBasedUUID(req.getTimestamp()));
         events.add(l);
       }
       
       ingestionDao.ingestEntitiesAsync(events);
-      //ingestionDao.ingestAsync(events);
-      //ingestionDao.ingestBatch(events, false);
       
       long time = System.currentTimeMillis() - start;
-      log.info(">>> ingestLoggingRequests:End ingestion batch <<<");
+      log.info(">>> ingestLoggingRequests: End ingestion batch <<< ("+requests.size()+")");
       long secs = TimeUnit.MILLISECONDS.toSeconds(time);
       log.info("Time taken: "+secs+" secs "+(time - TimeUnit.SECONDS.toMillis(secs)) + " ms");
     } 

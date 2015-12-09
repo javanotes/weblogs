@@ -79,7 +79,7 @@ public class LogEventServiceTest {
     event = new LogRequest();
     event.setLogText("This is some bla blaah bla logging at info level");
     event.setApplicationId(appId);
-    
+    event.setTimestamp(System.currentTimeMillis());
     try {
       logService.ingestLoggingRequest(event);
       
@@ -103,7 +103,7 @@ public class LogEventServiceTest {
       l = new LogRequest();
       l.setLogText("This is some bla blaah bla logging at info level");
       l.setApplicationId(appId);
-      
+      l.setTimestamp(System.currentTimeMillis());
       requests.add(l);
     }
     try {
@@ -127,7 +127,7 @@ public class LogEventServiceTest {
       l = new LogRequest();
       l.setLogText(LOG_PREFIX + i);
       l.setApplicationId(appId);
-      
+      l.setTimestamp(System.currentTimeMillis());
       requests.add(l);
     }
     try {
@@ -281,7 +281,7 @@ public class LogEventServiceTest {
       l = new LogRequest();
       l.setLogText(i % 2 == 0 ? (LOG_PREFIX + i) : (term + LOG_PREFIX + i));
       l.setApplicationId(appId);
-      
+      l.setTimestamp(System.currentTimeMillis());
       requests.add(l);
     }
     try {
@@ -537,7 +537,7 @@ public class LogEventServiceTest {
       l = new LogRequest();
       l.setLogText("This is some bla blaah bla logging at info level: "+(i % 2 == 0 ? "Lorem" : "Ipsum"));
       l.setApplicationId(appId);
-      
+      l.setTimestamp(System.currentTimeMillis());
       requests.add(l);
     }
     try {
@@ -617,7 +617,7 @@ public class LogEventServiceTest {
       l = new LogRequest();
       l.setLogText("This is some bla blaah bla logging at info level: "+(i % 2 == 0 ? "Lorem" : "Ipsum"));
       l.setApplicationId(appId);
-      
+      l.setTimestamp(System.currentTimeMillis());
       requests.add(l);
     }
     try {

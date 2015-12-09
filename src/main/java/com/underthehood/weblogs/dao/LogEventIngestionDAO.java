@@ -322,12 +322,12 @@ public class LogEventIngestionDAO extends LogEventDAO {
     try 
     {
       Assert.notNull(event);
-      List<Object> param = bindParams(event);
+      List<Object> param = bindParams(event, false);
       if (log.isDebugEnabled()) {
         log.debug(">>>>>>>>>> Sending ingestion params => " + param);
       }
       Object[] args = new Object[param.size()];
-      cassandraOperations.execute(cqlIngestStmt.bind(param.toArray(args)));
+      cassandraOperations.execute(cqlIngestEntityStmt.bind(param.toArray(args)));
     } catch (Exception e) {
       throw new DataAccessException(e);
     }

@@ -32,6 +32,7 @@ import org.springframework.data.cassandra.repository.support.BasicMapId;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.underthehood.weblogs.Application;
 import com.underthehood.weblogs.dao.LogEventIngestionDAO;
 import com.underthehood.weblogs.dao.LogEventRepository;
@@ -128,8 +129,7 @@ public class LogEventIngestDAOTest {
   @Test
   public void testInsertLogEvent()
   {
-    event = new LogEvent();
-    event.setId(new LogEventKey());
+    event = new LogEvent(UUIDs.timeBased());
     event.setLogText("This is some bla blaah bla logging at info level");
     event.getId().setAppId(appId);
     try {

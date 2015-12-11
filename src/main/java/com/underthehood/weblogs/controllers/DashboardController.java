@@ -42,6 +42,7 @@ import com.underthehood.weblogs.dto.ChartJSResponse;
 import com.underthehood.weblogs.dto.LogEventDTO;
 import com.underthehood.weblogs.dto.QueryRequest;
 import com.underthehood.weblogs.dto.QueryResponse;
+import com.underthehood.weblogs.service.ILogAggregationService;
 import com.underthehood.weblogs.service.ILoggingService;
 import com.underthehood.weblogs.service.ServiceException;
 import com.underthehood.weblogs.utils.CommonHelper;
@@ -52,6 +53,8 @@ import lombok.extern.slf4j.Slf4j;
 @Controller
 public class DashboardController {
 
+  @Autowired
+  private ILogAggregationService logMetrics;
   @Autowired
   private ILoggingService logService;
   
@@ -165,9 +168,9 @@ public class DashboardController {
     try 
     {
       if(CommonHelper.LOG_TREND_DAILY.equals(freq))
-        qr = logService.countDailyLogsByLevel(req);
+        qr = logMetrics.countDailyLogsByLevel(req);
       else if(CommonHelper.LOG_TREND_HOURLY.equals(freq))
-        qr = logService.countHourlyLogsByLevel(req);
+        qr = logMetrics.countHourlyLogsByLevel(req);
       else
         throw new ServiceException("Invalid frequency specified- "+freq);
       

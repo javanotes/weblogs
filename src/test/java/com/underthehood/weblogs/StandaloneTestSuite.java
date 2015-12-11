@@ -41,10 +41,18 @@ public class StandaloneTestSuite {
   public void testMakeTimeBasedUUID()
   {
     long time = System.currentTimeMillis();
+    Date d = new Date(time);
     try {
       UUID u = CommonHelper.makeTimeBasedUUID(time);
       Assert.assertNotNull(u);
       Assert.assertEquals("Not correct type 1 uuid", time, UUIDs.unixTimestamp(u));
+      Assert.assertEquals("Not correct date", time, d.getTime());
+      UUID u2 = CommonHelper.makeTimeBasedUUID(time);
+      Assert.assertNotNull(u2);
+      Assert.assertEquals("Not correct type 1 uuid", time, UUIDs.unixTimestamp(u2));
+      
+      Assert.assertNotEquals(u, u2);
+      
     } catch (Exception e) {
       e.printStackTrace();
       Assert.fail(e.getMessage());

@@ -1,11 +1,11 @@
 <div th:fragment="content"
 	xmlns:th="http://www.thymeleaf.org">
-	
+		
 	<div class="row">
 		<div class="col-md-12">
 			<div class="box box-solid box-primary">
 				<div class="box-header with-border ">
-					<h6 class="box-title">Log Search View</h6>
+					<h6 class="box-title">Log Trails</h6>
 
 					<div class="box-tools pull-right">
 						<button type="button" class="btn btn-box-tool"
@@ -17,68 +17,33 @@
 				<!-- box header -->
 
 				<div class="box-body">
-					<div class="row">
-						<div class="col-md-12">
-							<table style="border-collapse: separate; border-spacing: 20px;">
-								<tr>
-									<td><label>Application ID </label>&nbsp;&nbsp;<input
-										type="text" id="appId" name="appId" /></td>
-									<td><label>Search Term </label>&nbsp;&nbsp;<input
-										type="text" id="term" name="term" /></td>
-									<td><label>Auto Refresh </label>&nbsp;&nbsp; <input
-										disabled="disabled" th:checked="${p_refresh == true}"
-										id="autoRefresh" type="checkbox" name="autoRefresh"></input></td>
+					<div id="mainForm" style="display: none;">
 
-								</tr>
-								<tr>
+						<div class="box ">
 
-									<td>
-										<!-- Date and time range --> <label>Date Range</label>&nbsp;&nbsp;
+							<table id="batchExecPtDetailsTable"
+								class="table table-bordered table-striped table-hover table-condensed dt-responsive nowrap">
+								<thead>
+									<tr>
+										<th>Timestamp</th>
+										<th>Log Level</th>
+										<th>Exec Thread</th>
+										<th>Logged Text</th>
+									</tr>
+								</thead>
+								<tbody>
 
-										<input type="text" id="reportrange" />
-									</td>
-									<td><label>Log Level </label>&nbsp;&nbsp;<input
-										type="text" id="level" name="level" /></td>
-									<td>
-										<button id="btnRefresh" class="btn btn-primary">
-											<span class="glyphicon glyphicon-search"></span> Search
-										</button>
-									</td>
-								</tr>
+								</tbody>
+
 							</table>
-
-							<div id="mainForm" style="display: none;">
-
-								<div class="box ">
-									
-									<table id="batchExecPtDetailsTable"
-										class="table table-bordered table-striped table-hover table-condensed dt-responsive nowrap">
-										<thead>
-											<tr>
-												<th>Timestamp</th>
-												<th>Log Level</th>
-												<th>Logged Text</th>
-											</tr>
-										</thead>
-										<tbody>
-
-										</tbody>
-
-									</table>
-								</div>
-
-							</div>
-
 						</div>
-						<!-- /.col -->
 
 					</div>
-					<!-- /.row -->
 
-					
+
 				</div>
 				<!-- ./box-body -->
-            
+
 			</div>
 			<!-- /.box -->
 		</div>
@@ -395,6 +360,11 @@
 						       {
 							        "title" : "Log Level",
 							        "mDataProp" : "level",
+							        "orderable": false
+							   },
+							   {
+							        "title" : "Exec Thread",
+							        "mDataProp" : "execId",
 							        "orderable": false
 							   },
 						       {

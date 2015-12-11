@@ -65,6 +65,7 @@ public class LogEvent implements Serializable{
     getId().setAppId(req.getApplicationId());
     setLevel(req.getLevel());
     setLogText(req.getLogText());
+    setExecId(req.getExecutionId());
   }
   
   /**
@@ -82,7 +83,8 @@ public class LogEvent implements Serializable{
   
   @Column(value = "lucene")@Getter@Setter@LuceneIndex
   private String lucene;
-  
+  @Column(value = "exec_id")@Getter@Setter  
+  private String execId;
   @Override
   public boolean equals(Object obj) {
     if (this == obj)

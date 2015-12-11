@@ -26,6 +26,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -37,12 +38,13 @@ import org.springframework.data.cassandra.repository.MapId;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import com.underthehood.weblogs.Application;
 import com.underthehood.weblogs.dao.LogEventRepository;
 import com.underthehood.weblogs.dto.LogEventDTO;
 import com.underthehood.weblogs.dto.LogRequest;
 import com.underthehood.weblogs.dto.QueryRequest;
 import com.underthehood.weblogs.dto.QueryResponse;
+import com.underthehood.weblogs.dto.SliceQueryRequest;
+import com.underthehood.weblogs.service.ILogAggregationService;
 import com.underthehood.weblogs.service.ILoggingService;
 import com.underthehood.weblogs.service.ServiceException;
 import com.underthehood.weblogs.utils.CommonHelper;
@@ -54,6 +56,8 @@ public class LogEventServiceTest {
   
   @Autowired
   private ILoggingService logService;
+  @Autowired
+  private ILogAggregationService logMetrics;
   
   @Autowired
   private LogEventRepository repo;
@@ -70,6 +74,74 @@ public class LogEventServiceTest {
       } catch (Exception e) {
         Assert.fail(e.getMessage());
       }
+    }
+  }
+  
+  final String EXEC_START = "EXEC_START:";
+  final String EXEC_END = "EXEC_END:";
+  
+  @Test
+  public void testCountExecutionTimings()
+  {
+    List<LogRequest> requests = new ArrayList<>();
+    
+    final long startTime = System.currentTimeMillis();
+    final long execDur = 5;
+    
+    for(int i=0; i<batchSize; i++)
+    {
+      event = new LogRequest();
+      event.setLogText(EXEC_START+" This is some bla blaah bla logging at info level");
+      event.setExecutionId(i+"");
+      event.setApplicationId(appId);
+      event.setTimestamp(startTime+i);
+      requests.add(event);
+      
+      event = new LogRequest();
+      event.setLogText(EXEC_END+" This is some bla blaah bla logging at info level");
+      event.setExecutionId(i+"");
+      event.setApplicationId(appId);
+      event.setTimestamp(startTime+i + (i*execDur));
+      requests.add(event);
+    }
+    
+    try 
+    {
+      logService.ingestLoggingRequests(requests);
+      Thread.sleep(1000);
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+    SliceQueryRequest req = new SliceQueryRequest();
+    req.setAppId(appId);
+    req.setFetchSize(batchSize/2);
+    req.setFromDate(new Date());
+    Calendar tomorrow = GregorianCalendar.getInstance();
+    tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)+1);
+    req.setTillDate(tomorrow.getTime());
+    req.setSearchTerm(EXEC_START);
+    req.setSearchTermEnd(EXEC_END);
+    
+    try {
+      Map<String, Map<Date, Long>> counts = logMetrics.countExecutionTimings(req);
+      Assert.assertNotNull(counts);
+      Assert.assertFalse(counts.isEmpty());
+      Assert.assertEquals(batchSize, counts.size());
+      
+      int offset = 0;
+      //TODO
+      /*for(Entry<String, Map<Date, Long>> e : counts.entrySet())
+      {
+            
+        Assert.assertEquals("Timestamp mismatch", (startTime+offset), e.getKey().getTime());
+        Assert.assertEquals("Timing mismatch", (offset*execDur), e.getValue().longValue());
+        
+        offset++;
+      }*/
+      
+    } catch (ServiceException e) {
+      Assert.fail(e.getMessage());
     }
   }
 
@@ -561,7 +633,7 @@ public class LogEventServiceTest {
     SimpleDateFormat format = new SimpleDateFormat();
     try 
     {
-      Map<String, Long> counts = logService.countDailyLogsByLevel(req);
+      Map<String, Long> counts = logMetrics.countDailyLogsByLevel(req);
       Assert.assertNotNull(counts);
       Assert.assertFalse(counts.isEmpty());
       Assert.assertEquals(1, counts.keySet().size());
@@ -570,7 +642,7 @@ public class LogEventServiceTest {
       long count = counts.get(format.format(today.getTime()));
       Assert.assertEquals((batchSize*2), count);
       
-      counts = logService.countHourlyLogsByLevel(req);
+      counts = logMetrics.countHourlyLogsByLevel(req);
       Assert.assertNotNull(counts);
       Assert.assertFalse(counts.isEmpty());
       Assert.assertEquals(24, counts.keySet().size());
@@ -581,7 +653,7 @@ public class LogEventServiceTest {
       
       req.setSearchTerm("lOREm");
       
-      counts = logService.countDailyLogsByLevel(req);
+      counts = logMetrics.countDailyLogsByLevel(req);
       Assert.assertNotNull(counts);
       Assert.assertFalse(counts.isEmpty());
       Assert.assertEquals(1, counts.keySet().size());
@@ -590,7 +662,7 @@ public class LogEventServiceTest {
       count = counts.get(format.format(today.getTime()));
       Assert.assertEquals((batchSize/2), count);
       
-      counts = logService.countHourlyLogsByLevel(req);
+      counts = logMetrics.countHourlyLogsByLevel(req);
       Assert.assertNotNull(counts);
       Assert.assertFalse(counts.isEmpty());
       Assert.assertEquals(24, counts.keySet().size());

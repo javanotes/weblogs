@@ -1,26 +1,43 @@
 <aside class="main-sidebar" xmlns:th="http://www.thymeleaf.org">
 	<!-- sidebar: style can be found in sidebar.less -->
-	<section class="sidebar" th:with="active=${active},parent=${parent}">
+	<section class="sidebar">
     	<ul class="sidebar-menu">
-            <li class="header">MAIN NAVIGATION</li>
-            <!-- Begin outer loop -->           
-            <li th:class="${m.id == parent ? 'treeview active' : 'treeview'}" th:each="m : ${MENU}" >
-              <a href="#">
-                <i th:class="${m.icon}"></i>
-                <span th:text="${m.label}"></span>
-                <i th:class="${m.iconend}"></i>
-              </a>
-              <ul class="treeview-menu" th:if="${!#lists.isEmpty(m.items)}">
-              	<!-- Begin inner loop -->
-                <li th:each="i : ${m.items}" th:class="${i.id==active? 'active':''}">
-                	<a th:href="@{${i.href}}"><i th:class="${i.icon}"></i><span th:text="${i.label}"></span></a>
-                	
-                </li>
-                <!-- End inner loop -->
-              </ul>
-            </li>
-            
-         </ul>
+            <li class="header">SEARCH FILTER</li>
+            <!-- Begin outer loop -->
+			<li>
+				<form action="#" method="get" class="sidebar-form">
+					<div class="input-group">
+						<input type="text" title="Application ID" id="appId" name="appId" class="form-control"
+							placeholder="*Application ID..." /> 
+						<input type="text" title="Date range" id="reportrange" name="level" class="form-control"
+							placeholder="*Date range..." /> 
+												
+					</div>
+					
+				</form>
+			</li>
+			<li>
+				<form action="#" method="get" class="sidebar-form">
+					<input type="text" title="Search term" id="term" name="term" class="form-control"
+							placeholder="Search term..." /> 
+				</form>
+			</li>
+			
+			<li>
+				<form action="#" method="get" class="sidebar-form">
+					<input type="text" title="Log level" id="level" name="level" class="form-control"
+							placeholder="Log level..." /> 
+				</form>
+			</li>
+			<li>
+				<form action="#" method="get" class="sidebar-form">
+					<button id="btnRefresh" class="btn btn-info pull-right form-control">
+						<span class="glyphicon glyphicon-search"></span> Search
+					</button>
+				</form>
+			</li>
+
+		</ul>
      </section>
 </aside>
 

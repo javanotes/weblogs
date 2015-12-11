@@ -35,6 +35,7 @@ public class LogEventDTO {
         domain.getLogText(),
         UUIDs.unixTimestamp(domain.getId().getTimestamp()));
     setLevel(domain.getLevel());
+    setExecId(domain.getExecId());
   }
 
   public LogEventDTO() {
@@ -57,4 +58,5 @@ public class LogEventDTO {
   private String applicationId, logText;
   private Date timestamp;
   private String timestampText;
+  private String execId;
 }

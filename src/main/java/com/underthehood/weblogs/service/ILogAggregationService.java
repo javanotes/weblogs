@@ -1,6 +1,6 @@
 /* ============================================================================
 *
-* FILE: ILoggingService.java
+* FILE: ILogAnalyticService.java
 *
 * MODULE DESCRIPTION:
 * See class description
@@ -19,35 +19,33 @@
 */
 package com.underthehood.weblogs.service;
 
-import java.util.List;
+import java.util.Date;
+import java.util.Map;
 
-import com.underthehood.weblogs.dto.LogRequest;
 import com.underthehood.weblogs.dto.QueryRequest;
-import com.underthehood.weblogs.dto.QueryResponse;
+import com.underthehood.weblogs.dto.SliceQueryRequest;
 
-public interface ILoggingService {
-
-  /**
-   * Synchronous insert
-   * @param req
-   * @throws ServiceException
-   */
-  void ingestLoggingRequest(LogRequest req) throws ServiceException;
-
-  
-  /**
-   * Batch insert asynchronously
-   * @param requests
-   * @throws ServiceException
-   */
-  void ingestLoggingRequests(List<LogRequest> requests) throws ServiceException;
+public interface ILogAggregationService {
 
   /**
+   * 
    * @param request
    * @return
    * @throws ServiceException
    */
-  QueryResponse fetchLogsBetweenDates(QueryRequest request) throws ServiceException;
-  
-
+  Map<String, Long> countHourlyLogsByLevel(QueryRequest request) throws ServiceException;
+  /**
+   * 
+   * @param request
+   * @return
+   * @throws ServiceException
+   */
+  Map<String, Long> countDailyLogsByLevel(QueryRequest request) throws ServiceException;
+  /**
+   * 
+   * @param request
+   * @return
+   * @throws ServiceException
+   */
+  Map<String, Map<Date, Long>> countExecutionTimings(SliceQueryRequest request) throws ServiceException;
 }

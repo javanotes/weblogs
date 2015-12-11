@@ -54,4 +54,5 @@ public class LogRequest implements Serializable{
   private String level = "INFO";
   private String logText;
   private long timestamp = -1;
+  private String executionId;
 }

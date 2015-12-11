@@ -39,7 +39,7 @@ import com.google.common.hash.Hashing;
 
 import lombok.extern.slf4j.Slf4j;
 /**
- * This class is adapted from 3 sources, Datastax UUIDs, Apache Commons UUIDGen & JUG TimeBasedGenerator
+ * This class is adapted from Datastax UUIDs source 
  */
 @Slf4j
 class UUID1Generator {
@@ -99,7 +99,7 @@ class UUID1Generator {
 
   private final AtomicLong lastTimestamp = new AtomicLong(0L);
 
-  static long fromUnixTimestamp(long tstamp) {
+  private static long fromUnixTimestamp(long tstamp) {
     return (tstamp - START_EPOCH) * 10000;
   }
 
@@ -107,43 +107,49 @@ class UUID1Generator {
     return timestamp / 10000;
   }
 
+  /**
+   * From current time
+   * @return
+   */
   public UUID generate() {
     return generate(System.currentTimeMillis());
   }
+  
+  private static long makeMSB(long timestamp) {
+    long msb = 0L;
+    msb |= (0x00000000ffffffffL & timestamp) << 32;
+    msb |= (0x0000ffff00000000L & timestamp) >>> 16;
+    msb |= (0x0fff000000000000L & timestamp) >>> 48;
+    msb |= 0x0000000000001000L; // sets the version to 1.
+    return msb;
+  }
 
-  // from JUG
+  /**
+   * 
+   * @param timestamp
+   * @return
+   */
   public UUID generate(long timestamp) {
     final long rawTimestamp = getCurrentTimestamp(timestamp);
-    // Time field components are kind of shuffled, need to slice:
-    int clockHi = (int) (rawTimestamp >>> 32);
-    int clockLo = (int) rawTimestamp;
-    // and dice
-    int midhi = (clockHi << 16) | (clockHi >>> 16);
-    // need to squeeze in type (4 MSBs in byte 6, clock hi)
-    midhi &= ~0xF000; // remove high nibble of 6th byte
-    midhi |= 0x1000; // type 1
-    long midhiL = (long) midhi;
-    midhiL = ((midhiL << 32) >>> 32); // to get rid of sign extension
-    // and reconstruct
-    long l1 = (((long) clockLo) << 32) | midhiL;
-    // last detail: must force 2 MSB to be '10'
-    return new UUID(l1, clockAndNodeLSB);
+    return new UUID(makeMSB(rawTimestamp), clockAndNodeLSB);
   }
 
   // taken from Datastax UUIDs class
   // http://www.ietf.org/rfc/rfc4122.txt
   private static final long START_EPOCH = makeEpoch();
-  private static final long CLOCK = new Random(System.currentTimeMillis())
-      .nextLong();
-
-  // from Apache commons
+  
+  // from UUIDS commons
   private long getClockSeqAndNode(InetAddress addr) {
+    
+    long clock = new Random(System.currentTimeMillis()).nextLong();
+    long node = makeNode(addr);
+
     long lsb = 0;
-    lsb |= (CLOCK & 0x3f00000000000000L) >>> 56; // was 58?
-    lsb |= 0x0000000000000080;
-    lsb |= (CLOCK & 0x00ff000000000000L) >>> 48;
-    lsb |= makeNode(addr);
+    lsb |= (clock & 0x0000000000003FFFL) << 48;
+    lsb |= 0x8000000000000000L;
+    lsb |= node;
     return lsb;
+    
   }
 
   private static InetAddress getActualIPv4HostAddress() throws SocketException {

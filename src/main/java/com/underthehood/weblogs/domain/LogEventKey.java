@@ -51,7 +51,11 @@ public class LogEventKey implements Serializable{
   
   public Date getTimestampAsDate()
   {
-    return new Date(UUIDs.unixTimestamp(this.timestamp));
+    return new Date(getTimestampAsLong());
+  }
+  public long getTimestampAsLong()
+  {
+    return UUIDs.unixTimestamp(this.timestamp);
   }
   @Override
   public String toString() {

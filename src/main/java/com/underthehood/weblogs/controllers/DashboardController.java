@@ -22,9 +22,12 @@ package com.underthehood.weblogs.controllers;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
+import java.util.TreeMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -37,11 +40,12 @@ import org.springframework.web.util.HtmlUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
-import com.underthehood.weblogs.dto.ChartJSDataset;
-import com.underthehood.weblogs.dto.ChartJSResponse;
 import com.underthehood.weblogs.dto.LogEventDTO;
 import com.underthehood.weblogs.dto.QueryRequest;
 import com.underthehood.weblogs.dto.QueryResponse;
+import com.underthehood.weblogs.dto.SliceQueryRequest;
+import com.underthehood.weblogs.dto.viz.ChartJSDataset;
+import com.underthehood.weblogs.dto.viz.ChartJSResponse;
 import com.underthehood.weblogs.service.ILogAggregationService;
 import com.underthehood.weblogs.service.ILoggingService;
 import com.underthehood.weblogs.service.ServiceException;
@@ -120,13 +124,92 @@ public class DashboardController {
       }
       
     } catch (ServiceException e) {
+      log.error("Service exception ["+e.getMessage()+"]");
+      log.debug("", e);
+    }
+    catch (Exception e) {
       log.error("", e);
-      qr.setError(e.getMessage());
+      throw e;
     }
 
     log.debug("qr.getFirstRowUUID(): "+qr.getFirstRowUUID());
     log.debug("qr.getLastRowUUID(): "+qr.getLastRowUUID());
     return qr;
+  }
+  
+  @RequestMapping(value = "/exectrend")
+  public @ResponseBody ChartJSResponse fetchExecTimingTrends(
+      @RequestParam(value = "p_appid") String appId,
+      @RequestParam(value = "p_level", defaultValue = "INFO") String level,
+      @RequestParam(value = "p_dtrange") String dateRange,
+      @RequestParam(value = "p_term_1") String searchTerm,
+      @RequestParam(value = "p_term_2") String searchTermEnd,
+      Model model) {
+
+   
+    Map<String, Map<Date, Long>> qr;
+    ChartJSResponse resp = new ChartJSResponse();
+    SliceQueryRequest req = new SliceQueryRequest();
+    req.setAppId(appId);
+    req.setSearchTerm(searchTerm);
+    req.setFetchSize(50);
+    req.setLevel(level);
+    req.setSearchTermEnd(searchTermEnd);
+    
+    // 11/19/2015 - 11/19/2015
+    SimpleDateFormat sdf = new SimpleDateFormat(CommonHelper.DATE_PICKER_FORMAT);
+    StringTokenizer st = new StringTokenizer(dateRange);
+    try 
+    {
+      if(st.hasMoreTokens())
+        req.setFromDate(sdf.parse(st.nextToken()));
+      if(st.hasMoreTokens())
+        st.nextToken();
+      if(st.hasMoreTokens())
+        req.setTillDate(sdf.parse(st.nextToken()));
+      
+    } catch (ParseException e) {
+      log.error("Date parsing error ", e);
+      resp.setError("Internal server error!");
+    }
+    log.debug("Got request: " + req);
+
+    try 
+    {
+      sdf.applyPattern(CommonHelper.LOG_EXEC_TIMING_FORMAT);
+      qr = logMetrics.countExecutionTimings(req);
+      
+      if (qr != null && !qr.isEmpty()) 
+      {
+        TreeMap<Date, Long> ordered = new TreeMap<>();
+        for (Map<Date, Long> e : qr.values()) {
+          ordered.putAll(e);
+        }
+        for (Entry<Date, Long> e : ordered.entrySet()) {
+          resp.getLabels().add(sdf.format(e.getKey()));
+        }
+        Collection<String> values = Collections2.transform(ordered.values(),
+            new Function<Long, String>() {
+
+              @Override
+              public String apply(Long input) {
+                return String.valueOf(input);
+              }
+            });
+        resp.getDatasets().add(new ChartJSDataset(values));
+      }
+      
+    } catch (ServiceException e) {
+      log.error("Service exception ["+e.getMessage()+"]");
+      log.debug("", e);
+      resp.setError(e.getMessage());
+    }
+    catch (Exception e) {
+      log.error("", e);
+      throw e;
+    }
+
+    return resp;
   }
   
   @RequestMapping(value = "/logtrend")
@@ -187,8 +270,13 @@ public class DashboardController {
       resp.getDatasets().add(new ChartJSDataset(values));
       
     } catch (ServiceException e) {
-      log.error("", e);
+      log.error("Service exception ["+e.getMessage()+"]");
+      log.debug("", e);
       resp.setError(e.getMessage());
+    }
+    catch (Exception e) {
+      log.error("", e);
+      throw e;
     }
 
     return resp;

@@ -38,6 +38,8 @@ import com.underthehood.weblogs.Application;
 import com.underthehood.weblogs.dao.LogEventIngestionDAO;
 import com.underthehood.weblogs.dao.LogEventRepository;
 import com.underthehood.weblogs.domain.LogEvent;
+import com.underthehood.weblogs.dto.LogRequest;
+import com.underthehood.weblogs.service.ILoggingService;
 import com.underthehood.weblogs.utils.CommonHelper;
 
 import ch.qos.logback.core.helpers.ThrowableToStringArray;
@@ -52,6 +54,8 @@ public class DataGenerator {
   private LogEventIngestionDAO logDao;
   @Autowired
   private LogEventRepository repo;
+  @Autowired
+  private ILoggingService logService;
   
   private LogEvent event;
   private int logsPerPeriod = 10;
@@ -63,7 +67,7 @@ public class DataGenerator {
     
   }
   
-  @After
+  //@After
   public void delete()
   {
     if(event != null)
@@ -81,6 +85,58 @@ public class DataGenerator {
     if(i == 0)
       throw new Exception("This is a deep exception stack trace!");
     mRaiseEx(--i);
+  }
+  final String EXEC_START = "EXEC_START:";
+  final String EXEC_END = "EXEC_END:";
+  
+  @Test
+  public void generateExecutionTimedData()
+  {
+    List<LogRequest> requests = new ArrayList<>();
+    
+    final long execStartTime = System.currentTimeMillis();
+    final long execDur = 5;
+    LogRequest request = null;
+    for(int i=0; i<logsPerPeriod; i++)
+    {
+      request = new LogRequest();
+      request.setLogText(EXEC_START+" This is some bla blaah bla logging at info level");
+      request.setExecutionId(i+"");
+      request.setApplicationId(appId);
+      request.setTimestamp(execStartTime+i);
+      requests.add(request);
+      
+    }
+    
+    try 
+    {
+      logService.ingestLoggingRequests(requests);
+      Thread.sleep(1000);
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+    requests.clear();
+    
+    final long execEndTime = request.getTimestamp();
+    
+    for(int i=0; i<logsPerPeriod; i++)
+    {
+      request = new LogRequest();
+      request.setLogText(EXEC_END+" This is some bla blaah bla logging at info level");
+      request.setExecutionId(i+"");
+      request.setApplicationId(appId);
+      request.setTimestamp(execEndTime + (i*execDur));
+      requests.add(request);
+    }
+    
+    try 
+    {
+      logService.ingestLoggingRequests(requests);
+      Thread.sleep(1000);
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
   }
   //@Test
   public void generateXDaysData()

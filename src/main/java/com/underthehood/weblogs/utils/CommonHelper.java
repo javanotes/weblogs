@@ -74,6 +74,7 @@ public class CommonHelper {
   public static final String LOG_TREND_HOURLY_FORMAT = "dd-MMM:HH";
   public static final String LOG_TREND_DAILY = "DAILY";
   public static final String LOG_TREND_DAILY_FORMAT = "dd-MMM";
+  public static final String LOG_EXEC_TIMING_FORMAT = "dd-MMM HH:mm:ss";
   
   public static final int CASSANDRA_MAX_BATCH_ITEMS = 1024;
   public static final String ENTITY_PACKAGE_DECL = "com/underthehood/weblogs/domain";

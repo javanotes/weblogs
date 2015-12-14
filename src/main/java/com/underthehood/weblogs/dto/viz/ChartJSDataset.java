@@ -17,7 +17,7 @@
 *
 * ============================================================================
 */
-package com.underthehood.weblogs.dto;
+package com.underthehood.weblogs.dto.viz;
 
 import java.util.ArrayList;
 import java.util.Collection;

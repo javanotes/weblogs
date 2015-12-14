@@ -52,6 +52,37 @@
 	<!-- /.row -->
 	
 	<div class="row">
+		
+		<div class="col-md-12">
+			<div class="box box-solid box-primary">
+				<div class="box-header">
+					<h6 class="box-title">Hourly Error Trend</h6>
+					<div class="box-tools pull-right">
+						<button id="btnTHourly" type="button" class="btn btn-box-tool">
+							<i class="fa fa-line-chart"></i>
+						</button>
+						<button type="button" class="btn btn-box-tool"
+							data-widget="collapse">
+							<i class="fa fa-minus"></i>
+						</button>
+					</div>
+				</div>
+				<div class="box-body">
+					<div id="btnTHLoading" style="display: none;" class="overlay">
+						<i class="fa fa-refresh fa-spin"></i>
+					</div>
+					<div id="divTH" class="chart" style="overflow: scroll;"
+						align="center">
+						<canvas id="thChart" width="800" height="200"></canvas>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- /.col -->
+	</div>
+	<!-- /.row -->
+
+	<div class="row">
 		<div class="col-md-6">
 			<div class="box box-solid box-primary">
 				<div class="box-header">
@@ -60,18 +91,21 @@
 						<button id="btnTDaily" type="button" class="btn btn-box-tool">
 							<i class="fa fa-line-chart"></i>
 						</button>
-						<!-- <button type="button" class="btn btn-box-tool"
+						<button type="button" class="btn btn-box-tool"
 							data-widget="collapse">
 							<i class="fa fa-minus"></i>
-						</button> -->
+						</button>
 					</div>
 
 				</div>
-				<div id="btnTDLoading" style="display: none;" class="overlay">
-					<i class="fa fa-refresh fa-spin"></i>
-				</div>
-				<div id="divTD" class="chart" style="overflow: scroll;" align="center">
-					<canvas id="tdChart" width="800" height="150"></canvas>
+				<div class="box-body">
+					<div id="btnTDLoading" style="display: none;" class="overlay">
+						<i class="fa fa-refresh fa-spin"></i>
+					</div>
+					<div id="divTD" class="chart" style="overflow: scroll;"
+						align="center">
+						<canvas id="tdChart" width="800" height="200"></canvas>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -79,27 +113,31 @@
 		<div class="col-md-6">
 			<div class="box box-solid box-primary">
 				<div class="box-header">
-					<h6 class="box-title">Hourly Error Trend</h6>
+					<h6 class="box-title">Execution Timing Trend</h6>
 					<div class="box-tools pull-right">
-						<button id="btnTHourly" type="button" class="btn btn-box-tool">
+						<button id="btnExecT" type="button" class="btn btn-box-tool" data-toggle="modal" data-target="#execTModal">
 							<i class="fa fa-line-chart"></i>
 						</button>
-						<!-- <button type="button" class="btn btn-box-tool"
+						<button type="button" class="btn btn-box-tool"
 							data-widget="collapse">
 							<i class="fa fa-minus"></i>
-						</button> -->
+						</button>
 					</div>
 				</div>
-				<div id="btnTHLoading" style="display: none;" class="overlay">
-					<i class="fa fa-refresh fa-spin"></i>
-				</div>
-				<div id="divTH" class="chart" style="overflow: scroll;" align="center">
-					<canvas id="thChart" width="800" height="150"></canvas>
+				<div class="box-body">
+					<div id="btnExecTLoading" style="display: none;" class="overlay">
+						<i class="fa fa-refresh fa-spin"></i>
+					</div>
+					<div id="divExecT" class="chart" style="overflow: scroll;"
+						align="center">
+						<canvas id="exChart" width="800" height="200"></canvas>
+					</div>
 				</div>
 			</div>
 		</div>
-		<!-- /.col -->
+
 	</div>
+
 	<!-- /.row -->
 
 	<!-- Wait Modal Start here-->
@@ -107,7 +145,11 @@
 		tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
 		<div class="modal-dialog modal-sm">
 			<div class="modal-content">
-				
+				<div class="modal-header">
+					<h4 class="modal-title">
+						<span> </span>Processing..
+					</h4>
+				</div>
 				<div class="modal-body">
 					<div class="progress">
 						<div
@@ -120,7 +162,58 @@
 		</div>
 	</div>
 	<!-- Wait Modal ends Here -->
-		
+
+	<!-- Execution timing term modal -->
+	<div class="modal fade modal-info" id="execTModal" >
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" id="btnExModalClose" class="close" data-dismiss="modal">
+						<span aria-hidden="true">&times;</span> <span class="sr-only">Close</span>
+					</button>
+					<h4 class="modal-title">Execution Timing Trend - additional parameters required</h4>
+				</div>
+				<div id="nodataDiv" class="alert alert-warning" align="center"
+					style="display: none;">
+					<h5>
+						<i class="fa fa-warning"></i>&nbsp;&nbsp;<span>Execution start/stop marks are required!</span>
+					</h5>
+				</div>
+				<div class="modal-body">
+					<form class="form-horizontal">
+						<div class="box-body">
+							<div class="form-group">
+								<label class="col-sm-4 control-label">Start Mark</label>
+
+								<div class="col-sm-8">
+									<input type="text" class="form-control" id="inputExecBegin"
+										placeholder="Execution begin phrase to search.."/>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="col-sm-4 control-label">Stop Mark</label>
+
+								<div class="col-sm-8">
+									<input type="text" class="form-control" id="inputExecEnd"
+										placeholder="Execution end phrase to search.."/>
+								</div>
+							</div>
+							
+						</div>
+						<!-- /.box-body -->
+						
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" id="btnExecTSubmit" class="btn btn-primary pull-right">Submit</button>
+				</div>
+			</div>
+			<!-- /.modal-content -->
+		</div>
+		<!-- /.modal-dialog -->
+	</div>
+	<!-- /.modal -->
+
 	<script th:inline="javascript">
 		
 		//Note: the CDATA is for Thymeleaf inline processing.
@@ -130,15 +223,84 @@
 				
 		var _url = [[@{/logsearch}]];
 		var _urlChart = [[@{/logtrend}]];
+		var _urlExec = [[@{/exectrend}]];
+		
 		var refresh;
 		var table;
-		var tdCanvas,thCanvas;
-		var tdCtx, thCtx;
+		var tdCanvas,thCanvas, exCanvas;
+		var tdCtx, thCtx, exCtx;
 				
 		$(document).ready(function() {
 			refresh = $('#autoRefresh').is(':checked');
 			thCanvas = $('#thChart').get(0);
 			tdCanvas = $('#tdChart').get(0);
+			exCanvas = $('#exChart').get(0);
+			
+			$('#btnExModalClose').click(function(){
+				$('#nodataDiv').hide();
+			});
+			
+			//execution timing modal submit
+			$('#btnExecTSubmit').click(function(){
+				var term_1, term_2, appId, dtRange;
+				term_1 = $('#inputExecBegin').val();
+				term_2 = $('#inputExecEnd').val();
+				appId = $('#appId').val();
+				dtRange = $('#reportrange').val();
+				
+				if(!appId){
+					$('#execTModal').modal('hide');
+					showAlertModal('Application ID is required');
+					return;
+				}
+				if(!dtRange){
+					$('#execTModal').modal('hide');
+					showAlertModal('Date Range is required');
+					return;
+				}
+				if(!term_1 || !term_2){
+					$('#nodataDiv').show();
+					return;
+				}
+				
+				$.ajax({
+					url : _urlExec,
+					method : 'GET',
+					data: {p_term_1: term_1, p_term_2: term_2, p_appid: appId, p_dtrange: dtRange, p_level: $('#level').val()},
+					dataType: "json",
+					success : function(data){
+						$('#btnExecTLoading').hide();
+								
+						  if(data.error){
+							  showAlertModal(data.error);
+							  return;
+						  }
+						  if(exCtx){
+							  exCtx.clearRect(0, 0, exCanvas.width, exCanvas.height);
+						  }
+						  exCtx = exCanvas.getContext("2d");
+				          var myNewChart = new Chart(exCtx).Bar(data, {
+				        	    bezierCurve: false,
+				        	    responsive: true,
+				        	    maintainAspectRatio: false
+				          });
+				          
+	          
+					},//end success
+					error : function(err){
+						$('#btnExecTLoading').hide();
+						showAlertModal('Internal server error');
+						console.log('Error => '+err);
+					},
+					beforeSend : function(){
+						$('#execTModal').modal('hide');
+						if(exCtx){
+							  exCtx.clearRect(0, 0, exCanvas.width, exCanvas.height);
+						  }
+						$('#btnExecTLoading').show();
+					}
+				});
+			});
 			
 			$('#btnTHourly').click(function(){
 				var term, appId, dtRange;
@@ -162,7 +324,10 @@
 					dataType: "json",
 					success : function(data){
 						$('#btnTHLoading').hide();
-						//console.log('RESPONSE: '+JSON.stringify(data));		
+						if(data.error){
+							  showAlertModal(data.error);
+							  return;
+						  }		
 						  if(thCtx){
 							  thCtx.clearRect(0, 0, thCanvas.width, thCanvas.height);
 						  }
@@ -180,6 +345,9 @@
 						console.log('Error => '+err);
 					},
 					beforeSend : function(){
+						if(thCtx){
+							  thCtx.clearRect(0, 0, thCanvas.width, thCanvas.height);
+						  }
 						$('#btnTHLoading').show();
 					}
 				});
@@ -206,7 +374,10 @@
 					dataType: "json",
 					success : function(data){
 						$('#btnTDLoading').hide();
-						//console.log('RESPONSE: '+JSON.stringify(data));					          
+						if(data.error){
+							  showAlertModal(data.error);
+							  return;
+						  }					          
 						if(tdCtx){
 							  tdCtx.clearRect(0, 0, tdCanvas.width, tdCanvas.height);
 						  }
@@ -224,6 +395,9 @@
 						console.log('Error => '+err);
 					},
 					beforeSend : function(){
+						if(tdCtx){
+							  tdCtx.clearRect(0, 0, tdCanvas.width, tdCanvas.height);
+						  }
 						$('#btnTDLoading').show();
 					}
 				});

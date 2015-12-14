@@ -139,7 +139,7 @@ class UUID1Generator {
   private static final long START_EPOCH = makeEpoch();
   
   // from UUIDS commons
-  private long getClockSeqAndNode(InetAddress addr) {
+  private static long getClockSeqAndNode(InetAddress addr) {
     
     long clock = new Random(System.currentTimeMillis()).nextLong();
     long node = makeNode(addr);
@@ -179,7 +179,7 @@ class UUID1Generator {
    * @param addr
    * @return
    */
-  private long makeNode(InetAddress addr) {
+  private static long makeNode(InetAddress addr) {
     byte[] mac = null;
     if (addr != null) {
       try {

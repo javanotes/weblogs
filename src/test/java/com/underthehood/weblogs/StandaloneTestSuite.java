@@ -24,6 +24,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import org.junit.Assert;
@@ -31,32 +32,68 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
 
-import com.datastax.driver.core.utils.UUIDs;
+import com.underthehood.weblogs.domain.LogEventKey;
 import com.underthehood.weblogs.utils.CommonHelper;
 
 @RunWith(BlockJUnit4ClassRunner.class)
 public class StandaloneTestSuite {
 
+  private static long makeEpoch() {
+    // UUID v1 timestamp must be in 100-nanoseconds interval since 00:00:00.000 15 Oct 1582.
+    Calendar c = Calendar.getInstance(TimeZone.getTimeZone("GMT-0"));
+    c.set(Calendar.YEAR, 1582);
+    c.set(Calendar.MONTH, Calendar.OCTOBER);
+    c.set(Calendar.DAY_OF_MONTH, 15);
+    c.set(Calendar.HOUR_OF_DAY, 0);
+    c.set(Calendar.MINUTE, 0);
+    c.set(Calendar.SECOND, 0);
+    c.set(Calendar.MILLISECOND, 0);
+    return c.getTimeInMillis();
+}
   @Test
   public void testMakeTimeBasedUUID()
   {
-    long time = System.currentTimeMillis();
+    long ep1 = makeEpoch();
+    final long time = System.currentTimeMillis();
     Date d = new Date(time);
-    try {
+    try 
+    {
+      LogEventKey k = new LogEventKey();
       UUID u = CommonHelper.makeTimeBasedUUID(time);
+      k.setTimestamp(u);
       Assert.assertNotNull(u);
-      Assert.assertEquals("Not correct type 1 uuid", time, UUIDs.unixTimestamp(u));
+      Assert.assertEquals("Not correct type 1 uuid", time, k.getTimestampAsLong());
       Assert.assertEquals("Not correct date", time, d.getTime());
-      UUID u2 = CommonHelper.makeTimeBasedUUID(time);
-      Assert.assertNotNull(u2);
-      Assert.assertEquals("Not correct type 1 uuid", time, UUIDs.unixTimestamp(u2));
+      for(int i=1;i<10;i++)
+      {
+                
+        for (int j = 0; j < 10; j++) {
+                    
+          k = new LogEventKey();
+          k.setTimestamp(CommonHelper.makeTimeBasedUUID(time));
+          Assert.assertEquals("Incremental time series should match uuid & timestamp", time,
+              k.getTimestampAsLong());
+          
+        }
+        
+      }
       
-      Assert.assertNotEquals(u, u2);
+      k = new LogEventKey();
+      k.setTimestamp(CommonHelper.makeTimeBasedUUID(time+1));
+      Assert.assertEquals("Incremental time series should match uuid & timestamp", time+1,
+          k.getTimestampAsLong());
+      
+      k = new LogEventKey();
+      k.setTimestamp(CommonHelper.makeTimeBasedUUID(time - 1));
+      Assert.assertNotEquals("Decremental time series should mismatch uuid & timestamp", time - 1,
+          k.getTimestampAsLong());
       
     } catch (Exception e) {
       e.printStackTrace();
       Assert.fail(e.getMessage());
     }
+    long ep2 = makeEpoch();
+    Assert.assertEquals("Not correct epochs!", ep1, ep2);
   }
   @Test
   public void testHourFillings()

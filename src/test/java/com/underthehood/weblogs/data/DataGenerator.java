@@ -66,8 +66,6 @@ public class DataGenerator {
   @After
   public void delete()
   {
-    event = new LogEvent();
-    event.getId().setAppId(appId);
     if(event != null)
     {
       try {

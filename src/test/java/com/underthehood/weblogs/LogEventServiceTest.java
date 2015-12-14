@@ -26,7 +26,9 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -85,7 +87,7 @@ public class LogEventServiceTest {
   {
     List<LogRequest> requests = new ArrayList<>();
     
-    final long startTime = System.currentTimeMillis();
+    final long execStartTime = System.currentTimeMillis();
     final long execDur = 5;
     
     for(int i=0; i<batchSize; i++)
@@ -94,14 +96,30 @@ public class LogEventServiceTest {
       event.setLogText(EXEC_START+" This is some bla blaah bla logging at info level");
       event.setExecutionId(i+"");
       event.setApplicationId(appId);
-      event.setTimestamp(startTime+i);
+      event.setTimestamp(execStartTime+i);
       requests.add(event);
       
+    }
+    
+    try 
+    {
+      logService.ingestLoggingRequests(requests);
+      Thread.sleep(1000);
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
+    requests.clear();
+    
+    final long execEndTime = event.getTimestamp();
+    
+    for(int i=0; i<batchSize; i++)
+    {
       event = new LogRequest();
       event.setLogText(EXEC_END+" This is some bla blaah bla logging at info level");
       event.setExecutionId(i+"");
       event.setApplicationId(appId);
-      event.setTimestamp(startTime+i + (i*execDur));
+      event.setTimestamp(execEndTime + (i*execDur));
       requests.add(event);
     }
     
@@ -120,25 +138,34 @@ public class LogEventServiceTest {
     Calendar tomorrow = GregorianCalendar.getInstance();
     tomorrow.set(Calendar.DATE, tomorrow.get(Calendar.DATE)+1);
     req.setTillDate(tomorrow.getTime());
+    
     req.setSearchTerm(EXEC_START);
     req.setSearchTermEnd(EXEC_END);
     
-    try {
+    try 
+    {
       Map<String, Map<Date, Long>> counts = logMetrics.countExecutionTimings(req);
       Assert.assertNotNull(counts);
       Assert.assertFalse(counts.isEmpty());
       Assert.assertEquals(batchSize, counts.size());
       
       int offset = 0;
+      
+      NavigableMap<String, Map<Date, Long>> sorted = new TreeMap<>(counts);
       //TODO
-      /*for(Entry<String, Map<Date, Long>> e : counts.entrySet())
+      for(Entry<String, Map<Date, Long>> e : sorted.entrySet())
       {
-            
-        Assert.assertEquals("Timestamp mismatch", (startTime+offset), e.getKey().getTime());
-        Assert.assertEquals("Timing mismatch", (offset*execDur), e.getValue().longValue());
+        Assert.assertEquals(offset+"", e.getKey());    
+        Assert.assertEquals(1, e.getValue().size());
         
+        for(Entry<Date, Long> e2 : e.getValue().entrySet())
+        {
+          Assert.assertEquals("Timestamp mismatch", (execStartTime+offset), e2.getKey().getTime());
+          Assert.assertEquals("Timing mismatch", (execEndTime-(execStartTime+offset))+(offset*execDur), e2.getValue().longValue());
+        }
+                
         offset++;
-      }*/
+      }
       
     } catch (ServiceException e) {
       Assert.fail(e.getMessage());
@@ -173,7 +200,7 @@ public class LogEventServiceTest {
     for(int i=0; i<batchSize; i++)
     {
       l = new LogRequest();
-      l.setLogText("This is some bla blaah bla logging at info level");
+      l.setLogText(i+": This is some bla blaah bla logging at info level");
       l.setApplicationId(appId);
       l.setTimestamp(System.currentTimeMillis());
       requests.add(l);

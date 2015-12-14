@@ -48,18 +48,25 @@ public class LogEventKey implements Serializable{
   
   @PrimaryKeyColumn(type = PrimaryKeyType.CLUSTERED, ordinal = 1, name = "event_ts", ordering = Ordering.DESCENDING)
   private UUID timestamp;
-  
+  /**
+   * Gets the type 1 UUID as a {@link java.util.Date} 
+   * @return
+   */
   public Date getTimestampAsDate()
   {
     return new Date(getTimestampAsLong());
   }
+  /**
+   * Gets the type 1 UUID as a timestamp in Java - EPOCH (Jan 1 1970..)
+   * @return
+   */
   public long getTimestampAsLong()
   {
-    return UUIDs.unixTimestamp(this.timestamp);
+    return UUIDs.unixTimestamp(timestamp);
   }
   @Override
   public String toString() {
-    return "[appId=" + appId + ", timestamp=" + new Date(UUIDs.unixTimestamp(timestamp)) + "]";
+    return "[appId=" + appId + ", timestamp=" + getTimestampAsDate() + "]";
   }
       
 }

@@ -89,9 +89,15 @@ public class LoggingService implements ILoggingService {
         if(req.getTimestamp() <= 0)
           throw new ServiceException("Timestamp not provided");
         l = new LogEvent(req);
-        //we are setting the uuid from a jvm process
         //TODO: synchronize to be globally unique uuid?
         l.getId().setTimestamp(CommonHelper.makeTimeBasedUUID(req.getTimestamp()));
+        if(l.getId().getTimestampAsLong() != req.getTimestamp()){
+          log.warn("UUID to timestamp conversion mismatch detected! This is probably due to a decremental timestamp value presented in a series. Expected: "
+              + req.getTimestamp() + " Got: "
+              + l.getId().getTimestampAsLong());
+          
+        }
+        log.debug("req.getTimestamp() ----------- "+req.getTimestamp());
         events.add(l);
       }
       

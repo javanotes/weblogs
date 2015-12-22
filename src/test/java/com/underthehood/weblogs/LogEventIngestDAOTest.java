@@ -32,12 +32,9 @@ import org.springframework.data.cassandra.repository.support.BasicMapId;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import com.datastax.driver.core.utils.UUIDs;
-import com.underthehood.weblogs.Application;
 import com.underthehood.weblogs.dao.LogEventIngestionDAO;
 import com.underthehood.weblogs.dao.LogEventRepository;
 import com.underthehood.weblogs.domain.LogEvent;
-import com.underthehood.weblogs.domain.LogEventKey;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = Application.class)
@@ -57,13 +54,13 @@ public class LogEventIngestDAOTest {
     try 
     {
       if (event != null) {
-        repo.delete(new BasicMapId().with("appId", appId)/*.with("rownum",
-            event.getId().getRownum())*/);
+        repo.delete(new BasicMapId().with("appId", appId).with("bucket",
+            event.getId().getBucket()));
       }
       if(requests != null){
         for(LogEvent l : requests)
         {
-          repo.delete(new BasicMapId().with("appId", appId)/*.with("rownum", l.getId().getRownum())*/);
+          repo.delete(new BasicMapId().with("appId", appId).with("bucket", l.getId().getBucket()));
         }
       }
       
@@ -86,14 +83,13 @@ public class LogEventIngestDAOTest {
     for(int i=0; i<batchSize; i++)
     {
       event = new LogEvent();
-      event.setId(new LogEventKey());
       event.setLogText("This is some bla blaah bla logging at info level");
       event.getId().setAppId(appId);
       
       requests.add(event);
     }
     try {
-      iDao.ingestAsync(requests);
+      iDao.ingestEntitiesAsync(requests);
       
     } catch (Exception e) {
       Assert.fail(e.getMessage());
@@ -101,35 +97,13 @@ public class LogEventIngestDAOTest {
     
   }
   
-  @Test
-  public void testInsertLogEventsBatch()
-  {
-        
-    requests = new ArrayList<>(batchSize);
-    for(int i=0; i<batchSize; i++)
-    {
-      event = new LogEvent();
-      event.setId(new LogEventKey());
-      event.setLogText("This is some bla blaah bla logging at info level");
-      event.getId().setAppId(appId);
-      
-      requests.add(event);
-    }
-    try {
-      iDao.ingestBatch(requests, false);
-      
-    } catch (Exception e) {
-      Assert.fail(e.getMessage());
-    }
-    
-  }
-  
+   
   
   
   @Test
   public void testInsertLogEvent()
   {
-    event = new LogEvent(UUIDs.timeBased());
+    event = new LogEvent();
     event.setLogText("This is some bla blaah bla logging at info level");
     event.getId().setAppId(appId);
     try {

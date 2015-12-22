@@ -30,6 +30,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,6 +38,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -69,6 +72,7 @@ public class CommonHelper {
   public static final String ISO8601_TST_MILLIS_ZONE = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
   public static final String ISO8601_TST_MILLIS = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
   
+  public static final String TIMEBUCKET_DATEFORMAT = "yyyyMMdd";
   public static final String DATE_PICKER_FORMAT = "MM/dd/yyyy";
   public static final String LOG_TREND_HOURLY = "HOURLY";
   public static final String LOG_TREND_HOURLY_FORMAT = "dd-MMM:HH";
@@ -78,18 +82,87 @@ public class CommonHelper {
   
   public static final int CASSANDRA_MAX_BATCH_ITEMS = 1024;
   public static final String ENTITY_PACKAGE_DECL = "com/underthehood/weblogs/domain";
+  private static UUID javaEpochDateInBucketFormat;
   
-  private static Date epochDate;
+  public static UUID javaEpochTimeUUID()
+  {
+    if(javaEpochDateInBucketFormat == null)
+      javaEpochDateInBucketFormat = TimeuuidGenerator.getTimeUUID(javaEpochDate().getTime());
+    return javaEpochDateInBucketFormat;
+  }
+  private static final AtomicLong lastMillis = new AtomicLong();
+  //this map will keep on growing!
+  private static final Map<Long, AtomicInteger> timeCounter = new HashMap<Long, AtomicInteger>();
   /**
-   * Create a type-1 UUID based on the given timestamp
+   * Creates timeuuid based on current date
+   * @return
+   */
+  public static UUID makeTimeUuid() {
+    return makeTimeUuid(System.currentTimeMillis());
+  }
+  /**
+   * Creates timeuuid based on future or past dates
    * @param timestamp
    * @return
    */
-  public static UUID makeTimeBasedUUID(long timestamp)
+  public static UUID makeTimeUuid(long timestamp)
   {
-    return UUID1Generator.instance().generate(timestamp);
-    
+    long last;
+    do {
+      last = lastMillis.get();
+    } while (!lastMillis.compareAndSet(last, timestamp >= last ? timestamp : last));
+    if(timestamp >= last)
+    {
+      //incremental timeuuid
+      return TimeuuidGenerator.getTimeUUID(timestamp);
+    }
+    else
+    {
+      //decremental timeuuid
+      
+      if(!timeCounter.containsKey(timestamp))
+      {
+        synchronized (timeCounter) {
+          if(!timeCounter.containsKey(timestamp))
+          {
+            timeCounter.put(timestamp, new AtomicInteger());
+          }
+        }
+      }
+      timeCounter.get(timestamp).compareAndSet(10000, 0);
+      return TimeuuidGenerator.getTimeUUID(timestamp, timeCounter.get(timestamp).incrementAndGet());
+    }
   }
+  /**
+   * 
+   * @param d
+   * @return
+   */
+  public static UUID maxDateUuid(Date d)
+  {
+    Calendar c = dateToCalendar(d);
+    c.set(Calendar.HOUR_OF_DAY, 23);
+    c.set(Calendar.MINUTE, 59);
+    c.set(Calendar.SECOND, 59);
+    c.set(Calendar.MILLISECOND, 999);
+    return TimeuuidGenerator.maxTimeUUID(c.getTimeInMillis());
+  }
+  /**
+   * 
+   * @param d
+   * @return
+   */
+  public static UUID minDateUuid(Date d)
+  {
+    Calendar c = dateToCalendar(d);
+    c.set(Calendar.HOUR_OF_DAY, 0);
+    c.set(Calendar.MINUTE, 0);
+    c.set(Calendar.SECOND, 0);
+    c.set(Calendar.MILLISECOND, 0);
+    return TimeuuidGenerator.minTimeUUID(c.getTimeInMillis());
+  }
+  private static Date epochDate;
+    
   public static String highlightMatchedTerm(String html, String searchTerm, boolean caseInsensitive)
   {
     StringBuilder hl = new StringBuilder(html);
@@ -110,6 +183,38 @@ public class CommonHelper {
     c1.setTime(d);
     return c1;
   }
+  /**
+   * From/to inclusive
+   * @param from
+   * @param to
+   * @return
+   */
+  public static List<Date> getBetweenDateBuckets(Date from, Date to)
+  {
+    final List<Date> buckets = new ArrayList<>();
+       
+    if (to.after(from)) 
+    {
+      
+      Calendar f = dateToCalendar(from);
+      Calendar t = dateToCalendar(to);
+      
+      int gap = gapInDays(f, t);
+      buckets.add(from);
+      for (int i = 1; i <= gap; i++) {
+        buckets.add(addDays(from, i));
+      } 
+    }
+    return buckets;
+      
+  }
+  public static Date addDays(Date d, int n)
+  {
+    Calendar c = dateToCalendar(d);
+    c.add(Calendar.DAY_OF_MONTH, n);
+    return c.getTime();
+  }
+  
   //Note: will find gap for a max duration of 2 years
   static int gapInDays(Calendar a, Calendar b)
   {
@@ -192,7 +297,8 @@ public class CommonHelper {
       try {
         epochDate = new SimpleDateFormat(ISO8601_TS_MILLIS_ZONE)
             .parse("1970-01-01 00:00:00.000 GMT");
-      } catch (ParseException e) {
+        //epochDate = new Date(UUID1Generator.makeUuidv1Epoch());
+      } catch (Exception e) {
         throw new RuntimeException(e);
       } 
     }
@@ -395,4 +501,5 @@ public class CommonHelper {
     parser.applyPattern(ISO8601_DATETIME_ZONE);
     return parser.format(date);
   }
+  
 }

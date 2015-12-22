@@ -41,8 +41,9 @@ import com.underthehood.weblogs.domain.LogEventKey;
 
 abstract class LogEventDAO {
 
-  final static String MAXTIMEUUID = "maxTimeuuid";
-  final static String MINTIMEUUID = "minTimeuuid";
+  final static String FN_MAXTIMEUUID = "maxTimeuuid";
+  final static String FN_MINTIMEUUID = "minTimeuuid";
+  final static String FN_TOKEN = "token";
   
   
   @Autowired

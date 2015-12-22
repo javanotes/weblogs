@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.springframework.data.cassandra.mapping.Column;
 import org.springframework.data.cassandra.mapping.PrimaryKey;
 import org.springframework.data.cassandra.mapping.Table;
+import org.springframework.util.Assert;
 
 import com.underthehood.weblogs.domain.annot.CustomIndexField;
 import com.underthehood.weblogs.domain.annot.CustomIndexOption;
@@ -34,6 +35,7 @@ import com.underthehood.weblogs.domain.annot.FullTextSearchable;
 import com.underthehood.weblogs.domain.annot.LuceneIndex;
 import com.underthehood.weblogs.domain.annot.SearchIndexed;
 import com.underthehood.weblogs.dto.LogRequest;
+import com.underthehood.weblogs.utils.CommonHelper;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -66,6 +68,8 @@ public class LogEvent implements Serializable{
     setLevel(req.getLevel());
     setLogText(req.getLogText());
     setExecId(req.getExecutionId());
+    getId().setTimestamp(CommonHelper.makeTimeUuid(req.getTimestamp()));
+    Assert.isTrue(req.getTimestamp() == getId().getTimestampAsLong(), "Timestamp -> TimeUUID conversion incorrect");
   }
   
   /**

@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -40,7 +41,6 @@ import com.underthehood.weblogs.dto.QueryRequest;
 import com.underthehood.weblogs.dto.QueryResponse;
 import com.underthehood.weblogs.service.ILoggingService;
 import com.underthehood.weblogs.service.ServiceException;
-import com.underthehood.weblogs.utils.CommonHelper;
 
 import lombok.extern.slf4j.Slf4j;
 @Service@Slf4j
@@ -48,6 +48,7 @@ public class LoggingService implements ILoggingService {
 
   @Autowired
   private LogEventIngestionDAO ingestionDao;
+  @Qualifier("mainDAO")
   @Autowired
   private LogEventFinderPagingDAO finder;
   
@@ -60,7 +61,6 @@ public class LoggingService implements ILoggingService {
         throw new ServiceException("Timestamp not provided");
       LogEvent l;
       l = new LogEvent(req);
-      l.getId().setTimestamp(CommonHelper.makeTimeBasedUUID(req.getTimestamp()));           
       ingestionDao.insert(l);
     } 
     catch (DataAccessException e) {
@@ -89,8 +89,7 @@ public class LoggingService implements ILoggingService {
         if(req.getTimestamp() <= 0)
           throw new ServiceException("Timestamp not provided");
         l = new LogEvent(req);
-        //TODO: synchronize to be globally unique uuid?
-        l.getId().setTimestamp(CommonHelper.makeTimeBasedUUID(req.getTimestamp()));
+        
         if(l.getId().getTimestampAsLong() != req.getTimestamp()){
           log.warn("UUID to timestamp conversion mismatch detected! This is probably due to a decremental timestamp value presented in a series. Expected: "
               + req.getTimestamp() + " Got: "

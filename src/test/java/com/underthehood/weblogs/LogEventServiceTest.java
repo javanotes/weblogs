@@ -65,6 +65,7 @@ public class LogEventServiceTest {
   private LogEventRepository repo;
   
   LogRequest event;
+  List<LogRequest> requests;
   @After
   public void delete()
   {
@@ -77,6 +78,18 @@ public class LogEventServiceTest {
         Assert.fail(e.getMessage());
       }
     }
+    if(requests != null)
+    {
+      for(LogRequest r : requests)
+      {
+        try {
+          MapId id = r.toMapId();
+          repo.delete(id);
+        } catch (Exception e) {
+          Assert.fail(e.getMessage());
+        }
+      }
+    }
   }
   
   final String EXEC_START = "EXEC_START:";
@@ -85,7 +98,7 @@ public class LogEventServiceTest {
   @Test
   public void testCountExecutionTimings()
   {
-    List<LogRequest> requests = new ArrayList<>();
+    requests = new ArrayList<>();
     
     final long execStartTime = System.currentTimeMillis();
     final long execDur = 5;
@@ -100,17 +113,6 @@ public class LogEventServiceTest {
       requests.add(event);
       
     }
-    
-    try 
-    {
-      logService.ingestLoggingRequests(requests);
-      Thread.sleep(1000);
-    } catch (Exception e) {
-      Assert.fail(e.getMessage());
-    }
-    
-    requests.clear();
-    
     final long execEndTime = event.getTimestamp();
     
     for(int i=0; i<batchSize; i++)
@@ -195,7 +197,7 @@ public class LogEventServiceTest {
     event.setLogText("This is some bla blaah bla logging at info level");
     event.setApplicationId(appId);
     
-    List<LogRequest> requests = new ArrayList<>(batchSize);
+    requests = new ArrayList<>(batchSize);
     LogRequest l;
     for(int i=0; i<batchSize; i++)
     {
@@ -220,7 +222,7 @@ public class LogEventServiceTest {
     event = new LogRequest();
     event.setApplicationId(appId);//for cleanup
     LogRequest l;
-    List<LogRequest> requests = new ArrayList<>();
+    requests = new ArrayList<>();
     for(int i=0; i<batchSize*3; i++)
     {
       l = new LogRequest();
@@ -231,7 +233,7 @@ public class LogEventServiceTest {
     }
     try {
       logService.ingestLoggingRequests(requests);
-      Thread.sleep(1000);
+      Thread.sleep(5000);
     } catch (Exception e) {
       Assert.fail(e.getMessage());
     }
@@ -374,7 +376,7 @@ public class LogEventServiceTest {
     event = new LogRequest();
     event.setApplicationId(appId);//for cleanup
     LogRequest l;
-    List<LogRequest> requests = new ArrayList<>();
+    requests = new ArrayList<>();
     for(int i=0; i<batchSize*3; i++)
     {
       l = new LogRequest();
@@ -385,7 +387,7 @@ public class LogEventServiceTest {
     }
     try {
       logService.ingestLoggingRequests(requests);
-      Thread.sleep(1000);
+      Thread.sleep(5000);
     } catch (Exception e) {
       Assert.fail(e.getMessage());
     }
@@ -527,15 +529,30 @@ public class LogEventServiceTest {
     }
   }
   
-  @Test
+  @Test 
   public void testFindLogEventsBetweenDates()
   {
-    testInsertLogEvents();
-    try {
-      Thread.sleep(1000);
-    } catch (InterruptedException e1) {
-     
+    event = new LogRequest();
+    event.setLogText("This is some bla blaah bla logging at info level");
+    event.setApplicationId(appId);
+    
+    requests = new ArrayList<>(batchSize);
+    LogRequest l;
+    for(int i=0; i<batchSize; i++)
+    {
+      l = new LogRequest();
+      l.setLogText(i+": This is some bla blaah bla logging at info level");
+      l.setApplicationId(appId);
+      l.setTimestamp(System.currentTimeMillis());
+      requests.add(l);
     }
+    try {
+      logService.ingestLoggingRequests(requests);
+      Thread.sleep(5000);
+    } catch (Exception e) {
+      Assert.fail(e.getMessage());
+    }
+    
     QueryRequest req = new QueryRequest();
     req.setAppId(appId);
     req.setFetchSize(batchSize/2);
@@ -626,9 +643,9 @@ public class LogEventServiceTest {
   @Test
   public void testCountLogLevels()
   {
-    testInsertLogEvents();
+    //testInsertLogEvents();
     //insert with different terms
-    List<LogRequest> requests = new ArrayList<>(batchSize);
+    requests = new ArrayList<>(batchSize);
     LogRequest l;
     for(int i=0; i<batchSize; i++)
     {
@@ -641,7 +658,7 @@ public class LogEventServiceTest {
     }
     try {
       logService.ingestLoggingRequests(requests);
-      Thread.sleep(1000);//for index update
+      Thread.sleep(5000);//for index update
     } catch (Exception e) {
       Assert.fail(e.getMessage());
     }
@@ -667,7 +684,7 @@ public class LogEventServiceTest {
       format.applyPattern(CommonHelper.LOG_TREND_DAILY_FORMAT);
       Assert.assertTrue(counts.containsKey(format.format(today.getTime())));
       long count = counts.get(format.format(today.getTime()));
-      Assert.assertEquals((batchSize*2), count);
+      Assert.assertEquals((batchSize), count);
       
       counts = logMetrics.countHourlyLogsByLevel(req);
       Assert.assertNotNull(counts);
@@ -676,7 +693,7 @@ public class LogEventServiceTest {
       format.applyPattern(CommonHelper.LOG_TREND_HOURLY_FORMAT);
       Assert.assertTrue(counts.containsKey(format.format(today.getTime())));
       count = counts.get(format.format(today.getTime()));
-      Assert.assertEquals((batchSize*2), count);
+      Assert.assertEquals((batchSize), count);
       
       req.setSearchTerm("lOREm");
       
@@ -705,10 +722,9 @@ public class LogEventServiceTest {
   @Test
   public void testFindLogEventsBetweenDatesWithTerm()
   {
-    testInsertLogEvents();
-    
+   
     //insert with different terms
-    List<LogRequest> requests = new ArrayList<>(batchSize);
+    requests = new ArrayList<>(batchSize);
     LogRequest l;
     for(int i=0; i<batchSize; i++)
     {
@@ -721,7 +737,7 @@ public class LogEventServiceTest {
     }
     try {
       logService.ingestLoggingRequests(requests);
-      Thread.sleep(1000);//for index update
+      Thread.sleep(5000);//for index update
     } catch (Exception e) {
       Assert.fail(e.getMessage());
     }

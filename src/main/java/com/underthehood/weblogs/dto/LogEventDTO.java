@@ -21,7 +21,6 @@ package com.underthehood.weblogs.dto;
 
 import java.util.Date;
 
-import com.datastax.driver.core.utils.UUIDs;
 import com.underthehood.weblogs.domain.LogEvent;
 
 import lombok.Data;
@@ -33,7 +32,7 @@ public class LogEventDTO {
 
     this(domain.getId().getAppId(), 
         domain.getLogText(),
-        UUIDs.unixTimestamp(domain.getId().getTimestamp()));
+        domain.getId().getTimestampAsLong());
     setLevel(domain.getLevel());
     setExecId(domain.getExecId());
   }

@@ -35,9 +35,9 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BatchStatement.Type;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.utils.UUIDs;
 import com.underthehood.weblogs.domain.LogEvent;
 import com.underthehood.weblogs.utils.CommonHelper;
+import com.underthehood.weblogs.utils.TimeuuidGenerator;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -125,7 +125,7 @@ public class LogEventIngestionDAO extends LogEventDAO {
    * 
    * This is an asynchronous operation for batch saving as entities. A CQL is used to create a PreparedStatement once, 
    * then all row values are bound to the single PreparedStatement and executed asynchronously each, against the Session. 
-   * <b>Note:</b> this method will NOT use server generated timeuuid using now() function. Will be useful
+   * <b>Note:</b> this method DOES NOT use server generated timeuuid using now() function. Will be useful
    * for inserting dates manually from application.
    * @param entities
    * @throws DataAccessException 
@@ -181,11 +181,13 @@ public class LogEventIngestionDAO extends LogEventDAO {
     }
   }
   /**
+   * 
    * This is an insert operation designed for high performance writes. A CQL is used to create a PreparedStatement once, 
    * then all row values are bound to the single PreparedStatement and executed asynchronously each, against the Session. <p>
    * This method will use server generated timeuuid using now() function.
    * @param entities
    * @throws DataAccessException
+   * @deprecated Should not use server generated time
    */
   public void ingestAsync(List<LogEvent> entities) throws DataAccessException
   {
@@ -198,6 +200,7 @@ public class LogEventIngestionDAO extends LogEventDAO {
    * @param entities
    * @param useGeneratedTS
    * @throws DataAccessException
+   * @deprecated Should not use server generated time
    */
   public void ingestAsync(List<LogEvent> entities, boolean useGeneratedTS) throws DataAccessException
   {
@@ -210,7 +213,7 @@ public class LogEventIngestionDAO extends LogEventDAO {
       if (useGeneratedTS) {
         log.warn("-- Using driver generated TimeUUID instead of Cassandra now() --");
         for (LogEvent log : entities) {
-          log.getId().setTimestamp(UUIDs.timeBased());
+          log.getId().setTimestamp(TimeuuidGenerator.getTimeUUID());
         } 
       }
       final List<ResultSetFuture> futures = new ArrayList<>();

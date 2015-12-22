@@ -38,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Component
 @Slf4j
-public class FullTextSearch {
+class FullTextSearch {
 
   private static Set<String> getTokens(Analyzer analyzer, String string) {
     Set<String> result = new HashSet<String>();

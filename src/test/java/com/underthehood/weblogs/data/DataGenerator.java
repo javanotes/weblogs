@@ -25,7 +25,6 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Random;
 
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,7 +39,7 @@ import com.underthehood.weblogs.dao.LogEventRepository;
 import com.underthehood.weblogs.domain.LogEvent;
 import com.underthehood.weblogs.dto.LogRequest;
 import com.underthehood.weblogs.service.ILoggingService;
-import com.underthehood.weblogs.utils.CommonHelper;
+import com.underthehood.weblogs.utils.TimeuuidGenerator;
 
 import ch.qos.logback.core.helpers.ThrowableToStringArray;
 
@@ -160,7 +159,7 @@ public class DataGenerator {
           event.setLogText(LOG_PREFIX + " Day: " + date.get(Calendar.DATE)
               + " Hour: " + date.get(Calendar.HOUR_OF_DAY));
           event.getId().setAppId(appId);
-          event.getId().setTimestamp(CommonHelper.makeTimeBasedUUID(date.getTimeInMillis()));
+          event.getId().setTimestamp(TimeuuidGenerator.minTimeUUID(date.getTimeInMillis()));
           if (j < ec) 
           {
             event.setLevel("ERROR");

@@ -20,6 +20,7 @@
 package com.underthehood.weblogs.domain;
 
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
 
@@ -28,16 +29,17 @@ import org.springframework.cassandra.core.PrimaryKeyType;
 import org.springframework.data.cassandra.mapping.PrimaryKeyClass;
 import org.springframework.data.cassandra.mapping.PrimaryKeyColumn;
 
-import com.datastax.driver.core.utils.UUIDs;
+import com.underthehood.weblogs.utils.CommonHelper;
+import com.underthehood.weblogs.utils.TimeuuidGenerator;
 
 import lombok.Data;
 @Data
 @PrimaryKeyClass
 public class LogEventKey implements Serializable{
 
-  public LogEventKey()
+  LogEventKey()
   {
-    
+    setTimestamp(CommonHelper.makeTimeUuid());
   }
   /**
    * 
@@ -45,8 +47,9 @@ public class LogEventKey implements Serializable{
   private static final long serialVersionUID = -8319593299678087621L;
   @PrimaryKeyColumn(type = PrimaryKeyType.PARTITIONED, ordinal = 0, name = "app_id")
   private String appId;
-  
-  @PrimaryKeyColumn(type = PrimaryKeyType.CLUSTERED, ordinal = 1, name = "event_ts", ordering = Ordering.DESCENDING)
+  @PrimaryKeyColumn(type = PrimaryKeyType.PARTITIONED, ordinal = 1, name = "bucket")
+  private String bucket;
+  @PrimaryKeyColumn(type = PrimaryKeyType.CLUSTERED, ordinal = 2, name = "event_ts", ordering = Ordering.DESCENDING)
   private UUID timestamp;
   /**
    * Gets the type 1 UUID as a {@link java.util.Date} 
@@ -62,11 +65,15 @@ public class LogEventKey implements Serializable{
    */
   public long getTimestampAsLong()
   {
-    return UUIDs.unixTimestamp(timestamp);
+    return TimeuuidGenerator.unixTimestamp(timestamp);
   }
   @Override
   public String toString() {
     return "[appId=" + appId + ", timestamp=" + getTimestampAsDate() + "]";
   }
-      
+  public void setTimestamp(UUID u)
+  {
+    this.timestamp = u;
+    bucket = new SimpleDateFormat(CommonHelper.TIMEBUCKET_DATEFORMAT).format(getTimestampAsDate());
+  }
 }

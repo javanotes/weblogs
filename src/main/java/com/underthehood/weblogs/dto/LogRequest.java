@@ -20,10 +20,14 @@
 package com.underthehood.weblogs.dto;
 
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.hibernate.validator.constraints.NotEmpty;
 import org.springframework.data.cassandra.repository.MapId;
 import org.springframework.data.cassandra.repository.support.BasicMapId;
+
+import com.underthehood.weblogs.utils.CommonHelper;
 
 import lombok.Data;
 
@@ -37,8 +41,8 @@ public class LogRequest implements Serializable{
   public MapId toMapId()
   {
      return new BasicMapId()
-         .with("appId", getApplicationId());
-         //.with("bucket", getBucket());
+         .with("appId", getApplicationId())
+         .with("bucket", new SimpleDateFormat(CommonHelper.TIMEBUCKET_DATEFORMAT).format(new Date(getTimestamp())));
    }
   
   public LogRequest() {

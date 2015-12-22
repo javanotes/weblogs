@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -53,7 +54,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service@Slf4j
 public class LogAggregationService implements ILogAggregationService {
 
-  @Autowired
+  @Autowired@Qualifier("mainDAO")
   private LogEventFinderPagingDAO finder;
   private class QueryRunnable implements Runnable
   {

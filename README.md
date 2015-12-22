@@ -13,4 +13,4 @@ The project uses Stratio secondary index plugin for Cassandra; a Lucene based fu
   <li>A web based console for viewing and searching through logs, and some data visualization</li>
 </ul>
 
-More details can be found <a href="http://hotjavanotes.blogspot.in/">here</a>
+More details can be found <a href="http://hotjavanotes.blogspot.in/2015/12/full-text-searchable-log-repository.html">here</a>

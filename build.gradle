@@ -55,7 +55,22 @@ dependencies {
     testCompile("junit:junit")
     testCompile("org.springframework.boot:spring-boot-starter-test")
 }
-
 task wrapper(type: Wrapper) {
     gradleVersion = '2.3'
+}
+//------------- Utilities -----------
+task hello {
+	
+    FileTree collection = fileTree('src').include('**/*.java')
+    // Iterate over the files in the collection
+	collection.each {File file ->
+	    
+	    println file.name
+	    	def fileText = file.text;
+        	//def backupFile = new File(file.path + ".bak");
+        	fileText = fileText.replaceAll('ERICSSON', '').replaceAll('Ericsson Inc,', '')
+        	//backupFile.write(fileText);
+        	
+        	file.write(fileText);
+	}
 }

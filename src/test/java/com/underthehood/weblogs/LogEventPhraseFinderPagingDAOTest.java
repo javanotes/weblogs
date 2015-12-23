@@ -66,8 +66,8 @@ public class LogEventPhraseFinderPagingDAOTest {
       if(requests != null){
         for(LogEvent l : requests)
         {
-          repo.delete(new BasicMapId().with("appId", appId).with("bucket", event.getId().getBucket()));
-          repo.delete(new BasicMapId().with("appId", appId+":").with("bucket", event.getId().getBucket()));
+          repo.delete(new BasicMapId().with("appId", appId).with("bucket", l.getId().getBucket()));
+          repo.delete(new BasicMapId().with("appId", appId+":").with("bucket", l.getId().getBucket()));
         }
       }
       
@@ -99,7 +99,7 @@ public class LogEventPhraseFinderPagingDAOTest {
     }
     try 
     {
-      iDao.ingestAsync(requests);
+      iDao.ingestEntitiesAsync(requests);
       Thread.sleep(1000);//for index updates
       
       long count = fDao.count(appId, "", null, null, null);
@@ -147,7 +147,7 @@ public class LogEventPhraseFinderPagingDAOTest {
     }
     try 
     {
-      iDao.ingestAsync(requests);
+      iDao.ingestEntitiesAsync(requests);
       
      
       Calendar yesterday = GregorianCalendar.getInstance();

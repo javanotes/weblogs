@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Random;
+import java.util.TreeSet;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -106,7 +108,7 @@ public class DataGenerator {
       requests.add(request);
       
     }
-    
+       
     try 
     {
       logService.ingestLoggingRequests(requests);

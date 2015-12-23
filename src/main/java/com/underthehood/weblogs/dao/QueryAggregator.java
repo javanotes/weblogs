@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -43,7 +44,7 @@ import com.underthehood.weblogs.utils.TimeuuidComparator;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class QueryAggregator implements Runnable {
+class QueryAggregator{
   
   private CassandraConverterRowCallback<LogEvent> rowToDomainMapper;
   /**
@@ -99,10 +100,10 @@ class QueryAggregator implements Runnable {
   private ExecutorService threads;
   private ConcurrentHeadBuffer<LogEvent> events;
   /**
-   * 
+   * Submit a {@link ResultSetFuture future} for collating the resultset
    * @param future
    */
-  public void addResultSetFuture(ResultSetFuture future)
+  public void submit(ResultSetFuture future)
   {
     if(!started)
       throw new IllegalStateException("ParallelQueryAggregator not started");
@@ -110,24 +111,23 @@ class QueryAggregator implements Runnable {
       throw new IllegalStateException("ParallelQueryAggregator is stopping. No more request can be added");
     queue.offer(future);
   }
-  private boolean started, stopping;
+  private volatile boolean started, stopping;
   /**
    * 
    * @param nThreads no of threads
    * @param bufferSize head buffer size
-   * @param reverseOrder asc order if true (oldest first)
    */
-  public QueryAggregator(int nThreads, int bufferSize, final boolean reverseOrder)
+  public QueryAggregator(int nThreads, int bufferSize)
   {
-    init(nThreads, bufferSize, reverseOrder);
+    noOfThreads = nThreads;
+    init(bufferSize);
   }
  /**
   * 
   * @param nThreads no of threads
   * @param bufferSize head buffer size
-  * @param reverseOrder asc order if true (oldest first)
   */
-  private void init(int nThreads, int bufferSize, final boolean reverseOrder)
+  private void init(int bufferSize)
   {
     rowToDomainMapper = new CassandraConverterRowCallback<>(new MappingCassandraConverter(), LogEvent.class);
     events = new ConcurrentHeadBuffer<>(bufferSize, new Comparator<LogEvent>() {
@@ -137,24 +137,35 @@ class QueryAggregator implements Runnable {
            
       @Override
       public int compare(LogEvent o1, LogEvent o2) {
-        //return reverseOrder ? uuidc.compare(o2.getId().getTimestamp(), o1.getId().getTimestamp()) : 
           return uuidc.compare(o1.getId().getTimestamp(), o2.getId().getTimestamp());
       }
     });
     
-    threads = Executors.newFixedThreadPool(nThreads);
+    threads = Executors.newFixedThreadPool(noOfThreads);
     
   }
+  private int noOfThreads;
   /**
-   * 
+   * Starts the aggregator consumer threads
    */
   public void start()
   {
-    Thread t = new Thread(this, "QueryAggregator-"+System.currentTimeMillis());
-    t.setDaemon(true);
-    t.start();
+    futures = new ArrayList<>(noOfThreads);
+    for (int i = 0; i < noOfThreads; i++) 
+    {
+      Future<?> f = threads.submit(new Runnable() {
+        
+        @Override
+        public void run() {
+          doRun();
+        }
+      });
+      futures.add(f);
+    }
+    threads.shutdown();
     started = true;
   }
+  private List<Future<?>> futures;
   /**
    * 
    * @param duration
@@ -163,16 +174,20 @@ class QueryAggregator implements Runnable {
    */
   public List<LogEvent> awaitResultUninterruptibly(long duration, TimeUnit unit)
   {
-    synchronized (queue) {
-      queue.offer(new StopSignal());
-      stopping = true;
-      try 
+    queue.offer(new StopSignal());
+        
+    try 
+    {
+      boolean b = threads.awaitTermination(30, TimeUnit.SECONDS);
+      if(!b)
       {
-        queue.wait(unit.convert(duration, TimeUnit.MILLISECONDS));
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
+        log.warn("** Parallel aggregation threads did not stop in 30 secs. Results may be surprising **");
       }
+    } catch (InterruptedException e) {
+      log.debug("", e);
+      Thread.currentThread().interrupt();
     }
+    
     List<LogEvent> list = new ArrayList<>();
     LogEvent e;
     for (int i = 0; i < events.size(); i++) {
@@ -191,56 +206,45 @@ class QueryAggregator implements Runnable {
   {
     return awaitResultUninterruptibly(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
   }
-  @Override
-  public void run() {
+  
+  private void doRun() 
+  {
     ResultSetFuture f;
-    while(true)
+    while(!stopping)
     {
       try 
       {
         f = queue.take();
         if(f instanceof StopSignal)
+        {
+          stopping = true;   
+          for(Future<?> fu : futures)
+          {
+            fu.cancel(true);
+          }
           break;
+        }
+          
         try 
         {
           
           final ResultSet rs = f.getUninterruptibly();
-          threads.submit(new Runnable() {
-            
-            @Override
-            public void run() {
-              LogEvent l;
-              while(!rs.isExhausted())
-              {
-                l = rowToDomainMapper.doWith(rs.one());
-                events.add(l);
-              }
-            }
-          });
+          LogEvent l;
+          while(!rs.isExhausted())
+          {
+            l = rowToDomainMapper.doWith(rs.one());
+            events.add(l);
+          }
+          
         } catch (Exception e) {
           log.error("Query execution failure ", e);
         }
         
       } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
+        log.debug("This is an interrupt to end blocking wait", e);
       }
     }
     
-    threads.shutdown();
-    try 
-    {
-      boolean b = threads.awaitTermination(30, TimeUnit.SECONDS);
-      if(!b)
-      {
-        log.warn("Parallel aggregation threads did not stop in 30 secs. Results may be surprising ");
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
-    synchronized (queue) {
-      queue.notify();
-    }
-
   }
 
 }

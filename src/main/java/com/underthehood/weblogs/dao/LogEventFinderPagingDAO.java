@@ -124,17 +124,8 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
   public List<LogEvent> findByAppIdBetweenDatesContains(final String appId, String token, String level, LogEvent lastRow, final Date fromDate, final Date toDate, int limit, final boolean isPrevPaging)
   {
     SimpleDateFormat sdf = new SimpleDateFormat(CommonHelper.TIMEBUCKET_DATEFORMAT);
-    /*Select sel = QueryBuilder.select().from(table).limit(limit);
-    Where w = sel.where(
-        QueryBuilder.gte(QueryBuilder.token(pkCols[0], pkCols[1]), QueryBuilder.fcall(FN_TOKEN, appId, sdf.format(fromDate))))
-        .and(QueryBuilder.lte(QueryBuilder.token(pkCols[0], pkCols[1]), QueryBuilder.fcall(FN_TOKEN, appId, sdf.format(toDate))));*/
-        
     
-    /*
-     * Select on indexed columns and with IN clause for the PRIMARY KEY are not supported
-     */
-
-    QueryAggregator qAggr = new QueryAggregator(3, limit, isPrevPaging);
+    QueryAggregator qAggr = new QueryAggregator(3, limit);
     qAggr.start();
     List<Date> dateRange = CommonHelper.getBetweenDateBuckets(fromDate, toDate);
     for(Date dr : dateRange)
@@ -177,7 +168,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
       }
       
       log.debug(">>>>>>>>> Firing select query: "+sel.toString());
-      qAggr.addResultSetFuture(cassandraOperations.executeAsynchronously(sel));
+      qAggr.submit(cassandraOperations.executeAsynchronously(sel));
       
     }
     
@@ -201,7 +192,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
   public List<LogEvent> findByAppIdBetweenDates(String appId, String level, LogEvent lastRow, Date fromDate, Date toDate, int limit, boolean isPrevPaging)
   {
     SimpleDateFormat sdf = new SimpleDateFormat(CommonHelper.TIMEBUCKET_DATEFORMAT);
-    QueryAggregator qAggr = new QueryAggregator(3, limit, isPrevPaging);
+    QueryAggregator qAggr = new QueryAggregator(3, limit);
     qAggr.start();
     List<Date> dateRange = CommonHelper.getBetweenDateBuckets(fromDate, toDate);
     
@@ -246,7 +237,7 @@ public class LogEventFinderPagingDAO extends LogEventDAO{
       }
       
       log.debug(">>>>>>>>> Firing select query: "+sel.toString());
-      qAggr.addResultSetFuture(cassandraOperations.executeAsynchronously(sel));
+      qAggr.submit(cassandraOperations.executeAsynchronously(sel));
     }
     
     List<LogEvent> events = qAggr.awaitResultUninterruptibly();
